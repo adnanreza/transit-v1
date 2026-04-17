@@ -2,10 +2,18 @@ import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
 import { pipeline } from 'node:stream/promises'
+import { readTextFromZip } from './lib/extract.ts'
+import {
+  filterFixedRoutes,
+  parseRoutes,
+  parseStops,
+  stopsToGeoJSON,
+} from './lib/gtfs.ts'
 
 const GTFS_URL = 'https://gtfs-static.translink.ca/gtfs/google_transit.zip'
 const CACHE_DIR = path.resolve(import.meta.dirname, '..', '.cache')
 const CACHE_FILE = path.join(CACHE_DIR, 'gtfs.zip')
+const DATA_DIR = path.resolve(import.meta.dirname, '..', 'public', 'data')
 
 async function sha256(filePath: string): Promise<string> {
   const hash = crypto.createHash('sha256')
@@ -71,7 +79,25 @@ export async function downloadGtfs(): Promise<GtfsDownload> {
 }
 
 async function main() {
-  await downloadGtfs()
+  const { path: zipPath } = await downloadGtfs()
+
+  const [routesCsv, stopsCsv] = await Promise.all([
+    readTextFromZip(zipPath, 'routes.txt'),
+    readTextFromZip(zipPath, 'stops.txt'),
+  ])
+
+  const routes = filterFixedRoutes(parseRoutes(routesCsv))
+  const stops = parseStops(stopsCsv)
+
+  console.log(`Routes (fixed-route only): ${routes.length}`)
+  console.log(`Stops: ${stops.length}`)
+
+  fs.mkdirSync(DATA_DIR, { recursive: true })
+  fs.writeFileSync(
+    path.join(DATA_DIR, 'stops.geojson'),
+    JSON.stringify(stopsToGeoJSON(stops)),
+  )
+  console.log(`Wrote public/data/stops.geojson (${stops.length} features)`)
 }
 
 main().catch((err) => {
