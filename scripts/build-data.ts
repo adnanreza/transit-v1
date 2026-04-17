@@ -34,7 +34,8 @@ import {
   parseGtfsTime,
   type PatternTimes,
 } from './lib/headways.ts'
-import type { DayType } from './types/frequencies.ts'
+import { patternBandAndFtn, routeBandFromPatterns } from './lib/ftn.ts'
+import type { Band, DayType } from './types/frequencies.ts'
 
 const GTFS_URL = 'https://gtfs-static.translink.ca/gtfs/google_transit.zip'
 const CACHE_DIR = path.resolve(import.meta.dirname, '..', '.cache')
@@ -217,24 +218,82 @@ async function main() {
     }
     patternTimes.set(pattern.pattern_id, times)
   }
-  const patternFrequencies = new Map<
-    string,
-    ReturnType<typeof computePatternFrequencies> & { summary: PatternSummary }
-  >()
+  // Compute trip counts per route (for pattern trip_share) and per pattern.
+  const tripsPerRoute = new Map<string, number>()
+  for (const t of tripPatterns) {
+    tripsPerRoute.set(t.route_id, (tripsPerRoute.get(t.route_id) ?? 0) + 1)
+  }
+
+  interface PatternWithFrequency {
+    summary: PatternSummary
+    trip_share: number
+    headways: ReturnType<typeof computePatternFrequencies>['headways']
+    hourly: ReturnType<typeof computePatternFrequencies>['hourly']
+    band: Band
+    ftn_qualifies: boolean
+    ftn_failure: { day_type: DayType; hour: number } | null
+  }
+
+  const patternFrequencies = new Map<string, PatternWithFrequency>()
   for (const [patternId, times] of patternTimes) {
     const summary = patterns.get(patternId)!
-    patternFrequencies.set(patternId, { ...computePatternFrequencies(times), summary })
+    const { headways, hourly } = computePatternFrequencies(times)
+    const routeTrips = tripsPerRoute.get(summary.route_id) ?? 1
+    const tripShare = summary.trip_ids.length / routeTrips
+    const { band, ftn_qualifies, ftn_failure } = patternBandAndFtn(headways, hourly)
+    patternFrequencies.set(patternId, {
+      summary,
+      trip_share: tripShare,
+      headways,
+      hourly,
+      band,
+      ftn_qualifies,
+      ftn_failure,
+    })
   }
-  const sampleWithService = [...patternFrequencies.values()]
-    .filter((p) => p.headways.weekday.am_peak !== null)
-    .slice(0, 3)
-  console.log(`Computed frequencies for ${patternFrequencies.size} patterns`)
-  for (const p of sampleWithService) {
-    console.log(
-      `  Pattern ${p.summary.pattern_id} route ${p.summary.route_id}: ` +
-        `weekday AM peak headway ${p.headways.weekday.am_peak?.toFixed(1)} min`,
+
+  // Derive route-level bands from their patterns.
+  const patternsByRoute = new Map<string, PatternWithFrequency[]>()
+  for (const p of patternFrequencies.values()) {
+    const arr = patternsByRoute.get(p.summary.route_id) ?? []
+    arr.push(p)
+    patternsByRoute.set(p.summary.route_id, arr)
+  }
+  const routeBands = new Map<
+    string,
+    { band: Band; ftn_qualifies: boolean; ftn_failure: { day_type: DayType; hour: number } | null }
+  >()
+  for (const [routeId, ps] of patternsByRoute) {
+    routeBands.set(
+      routeId,
+      routeBandFromPatterns(
+        ps.map((p) => ({
+          band: p.band,
+          ftn_qualifies: p.ftn_qualifies,
+          ftn_failure: p.ftn_failure,
+          trip_share: p.trip_share,
+        })),
+      ),
     )
   }
+
+  // Distribution logging
+  const bandCounts: Record<Band, number> = {
+    very_frequent: 0,
+    frequent: 0,
+    standard: 0,
+    infrequent: 0,
+    peak_only: 0,
+    night_only: 0,
+  }
+  for (const { band } of routeBands.values()) bandCounts[band]++
+  const ftnCount = [...routeBands.values()].filter((r) => r.ftn_qualifies).length
+  console.log(
+    `Route bands: very_frequent=${bandCounts.very_frequent}, frequent=${bandCounts.frequent}, ` +
+      `standard=${bandCounts.standard}, infrequent=${bandCounts.infrequent}, ` +
+      `peak_only=${bandCounts.peak_only}, night_only=${bandCounts.night_only}`,
+  )
+  console.log(`FTN-qualifying routes: ${ftnCount} / ${routeBands.size}`)
 
   const routesRaw = shapesToRouteGeoJSON(shapes, shapeToRoute)
   const routesSimplified = await simplifyRoutes(routesRaw, 20)
