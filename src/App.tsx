@@ -1,36 +1,29 @@
+import { Map } from '@/components/Map'
+
 export default function App() {
   return (
-    <div className="flex min-h-screen flex-col bg-neutral-950 text-neutral-100">
-      <main className="flex flex-1 flex-col items-center justify-center px-6 text-center">
-        <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
-          Metro Vancouver Frequent Transit Map
-        </h1>
-        <p className="mt-4 max-w-xl text-neutral-400">
-          An interactive map of TransLink's network, color-coded by service frequency.
-        </p>
-      </main>
-      <footer className="border-t border-neutral-800 px-6 py-4 text-xs text-neutral-500">
-        <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-2">
-          <div>
-            Transit data ©{' '}
-            <a
-              href="https://www.translink.ca/about-us/doing-business-with-translink/app-developer-resources"
-              className="underline hover:text-neutral-300"
-            >
-              TransLink
-            </a>
-            {' · '}
-            Map data ©{' '}
-            <a
-              href="https://www.openstreetmap.org/copyright"
-              className="underline hover:text-neutral-300"
-            >
-              OpenStreetMap contributors
-            </a>
+    <div className="relative h-screen w-screen overflow-hidden bg-neutral-950 text-neutral-100">
+      <Map />
+      <footer className="pointer-events-none absolute inset-x-0 top-0 p-3 text-xs">
+        <div className="pointer-events-auto mx-auto flex max-w-4xl flex-col gap-1 rounded-md bg-neutral-950/80 px-3 py-2 text-neutral-300 shadow-lg ring-1 ring-white/10 backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-0.5">
+            <p>
+              Route and arrival data used in this product or service is provided by permission of{' '}
+              <a
+                href="https://www.translink.ca/about-us/doing-business-with-translink/app-developer-resources"
+                className="underline hover:text-neutral-100"
+              >
+                TransLink
+              </a>
+              .
+            </p>
+            <p className="text-neutral-500">
+              TransLink assumes no responsibility for the accuracy or currency of the Data used in this product or service.
+            </p>
           </div>
           <a
             href="https://github.com/adnanreza/transit-v1"
-            className="underline hover:text-neutral-300"
+            className="underline hover:text-neutral-100"
           >
             GitHub
           </a>
