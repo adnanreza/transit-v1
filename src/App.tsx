@@ -29,13 +29,31 @@ export default function App() {
             <p className="text-neutral-500">
               TransLink assumes no responsibility for the accuracy or currency of the Data used in this product or service.
             </p>
+            <p className="text-neutral-500">
+              Map data ©{' '}
+              <a
+                href="https://www.openstreetmap.org/copyright"
+                className="underline hover:text-neutral-300"
+              >
+                OpenStreetMap contributors
+              </a>
+              .
+            </p>
           </div>
-          <a
-            href="https://github.com/adnanreza/transit-v1"
-            className="underline hover:text-neutral-100"
-          >
-            GitHub
-          </a>
+          <div className="flex items-center gap-3">
+            <a
+              href="https://github.com/adnanreza/transit-v1"
+              className="underline hover:text-neutral-100"
+            >
+              GitHub
+            </a>
+            <a
+              href="https://github.com/adnanreza/transit-v1/blob/main/LICENSE"
+              className="underline hover:text-neutral-100"
+            >
+              MIT
+            </a>
+          </div>
         </div>
       </footer>
     </div>
