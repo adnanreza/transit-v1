@@ -29,5 +29,5 @@ export function Map() {
     }
   }, [])
 
-  return <div ref={containerRef} className="absolute inset-0" />
+  return <div ref={containerRef} className="h-full w-full" />
 }
