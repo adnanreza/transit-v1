@@ -2,11 +2,15 @@ import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
 import { pipeline } from 'node:stream/promises'
-import { readTextFromZip } from './lib/extract.ts'
+import { openZipEntry, readTextFromZip } from './lib/extract.ts'
 import {
+  buildShapeToRouteMap,
+  collectShapes,
   filterFixedRoutes,
   parseRoutes,
   parseStops,
+  parseTrips,
+  shapesToRouteGeoJSON,
   stopsToGeoJSON,
 } from './lib/gtfs.ts'
 
@@ -92,12 +96,29 @@ async function main() {
   console.log(`Routes (fixed-route only): ${routes.length}`)
   console.log(`Stops: ${stops.length}`)
 
+  const tripsCsv = await readTextFromZip(zipPath, 'trips.txt')
+  const trips = parseTrips(tripsCsv)
+  const shapeToRoute = buildShapeToRouteMap(trips, routes)
+  console.log(`Shape → route mappings: ${shapeToRoute.size}`)
+
+  const shapesStream = await openZipEntry(zipPath, 'shapes.txt')
+  const shapes = await collectShapes(shapesStream, new Set(shapeToRoute.keys()))
+  console.log(`Shapes collected: ${shapes.size}`)
+
+  const routesGeoJSON = shapesToRouteGeoJSON(shapes, shapeToRoute)
+
   fs.mkdirSync(DATA_DIR, { recursive: true })
   fs.writeFileSync(
     path.join(DATA_DIR, 'stops.geojson'),
     JSON.stringify(stopsToGeoJSON(stops)),
   )
   console.log(`Wrote public/data/stops.geojson (${stops.length} features)`)
+
+  fs.writeFileSync(
+    path.join(DATA_DIR, 'routes.geojson'),
+    JSON.stringify(routesGeoJSON),
+  )
+  console.log(`Wrote public/data/routes.geojson (${routesGeoJSON.features.length} features)`)
 }
 
 main().catch((err) => {
