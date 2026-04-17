@@ -1,0 +1,25 @@
+# OS
+.DS_Store
+
+# Editors
+.vscode/
+.idea/
+
+# Node / Vite
+node_modules/
+dist/
+.vite/
+*.log
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Claude Code — commit shared workflow (.claude/skills/), ignore personal + local
+.claude/settings.local.json
+.claude/memory/
+.claude/projects/
+
+# Build-data pipeline cache (raw GTFS downloads, etc.)
+.cache/
