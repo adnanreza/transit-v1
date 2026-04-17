@@ -1,39 +1,59 @@
+import { lazy, Suspense } from 'react'
+
+// Code-split the map: maplibre-gl + pmtiles + protomaps-themes-base add up to
+// ~300 KB gz on their own, which blows SPEC's 300 KB initial-JS budget. Load
+// them only after the shell renders.
+const Map = lazy(() =>
+  import('@/components/Map').then((m) => ({ default: m.Map })),
+)
+
 export default function App() {
   return (
-    <div className="flex min-h-screen flex-col bg-neutral-950 text-neutral-100">
-      <main className="flex flex-1 flex-col items-center justify-center px-6 text-center">
-        <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
-          Metro Vancouver Frequent Transit Map
-        </h1>
-        <p className="mt-4 max-w-xl text-neutral-400">
-          An interactive map of TransLink's network, color-coded by service frequency.
-        </p>
-      </main>
-      <footer className="border-t border-neutral-800 px-6 py-4 text-xs text-neutral-500">
-        <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-2">
-          <div>
-            Transit data ©{' '}
+    <div className="relative h-screen w-screen overflow-hidden bg-neutral-950 text-neutral-100">
+      <Suspense fallback={<div className="h-full w-full" />}>
+        <Map />
+      </Suspense>
+      <footer className="pointer-events-none absolute inset-x-0 top-0 p-3 text-xs">
+        <div className="pointer-events-auto mx-auto flex max-w-4xl flex-col gap-1 rounded-md bg-neutral-950/80 px-3 py-2 text-neutral-300 shadow-lg ring-1 ring-white/10 backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-0.5">
+            <p>
+              Route and arrival data used in this product or service is provided by permission of{' '}
+              <a
+                href="https://www.translink.ca/about-us/doing-business-with-translink/app-developer-resources"
+                className="underline hover:text-neutral-100"
+              >
+                TransLink
+              </a>
+              .
+            </p>
+            <p className="text-neutral-500">
+              TransLink assumes no responsibility for the accuracy or currency of the Data used in this product or service.
+            </p>
+            <p className="text-neutral-500">
+              Map data ©{' '}
+              <a
+                href="https://www.openstreetmap.org/copyright"
+                className="underline hover:text-neutral-300"
+              >
+                OpenStreetMap contributors
+              </a>
+              .
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
             <a
-              href="https://www.translink.ca/about-us/doing-business-with-translink/app-developer-resources"
-              className="underline hover:text-neutral-300"
+              href="https://github.com/adnanreza/transit-v1"
+              className="underline hover:text-neutral-100"
             >
-              TransLink
+              GitHub
             </a>
-            {' · '}
-            Map data ©{' '}
             <a
-              href="https://www.openstreetmap.org/copyright"
-              className="underline hover:text-neutral-300"
+              href="https://github.com/adnanreza/transit-v1/blob/main/LICENSE"
+              className="underline hover:text-neutral-100"
             >
-              OpenStreetMap contributors
+              MIT
             </a>
           </div>
-          <a
-            href="https://github.com/adnanreza/transit-v1"
-            className="underline hover:text-neutral-300"
-          >
-            GitHub
-          </a>
         </div>
       </footer>
     </div>

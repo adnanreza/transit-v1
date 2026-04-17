@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "test": "vitest run",
     "preview": "vite preview",
-    "prepare-data": "tsx scripts/build-data.ts"
+    "prepare-data": "tsx scripts/build-data.ts",
+    "prepare-basemap": "scripts/prepare-basemap.sh"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.2.8",
@@ -18,6 +19,9 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.8.0",
+    "maplibre-gl": "^5.23.0",
+    "pmtiles": "^4.4.1",
+    "protomaps-themes-base": "^4.5.0",
     "radix-ui": "^1.4.3",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
