@@ -35,7 +35,13 @@ import {
   type PatternTimes,
 } from './lib/headways.ts'
 import { patternBandAndFtn, routeBandFromPatterns } from './lib/ftn.ts'
-import type { Band, DayType } from './types/frequencies.ts'
+import type {
+  Band,
+  DayType,
+  FrequenciesFile,
+  PatternFrequency,
+  RouteFrequency,
+} from './types/frequencies.ts'
 
 const GTFS_URL = 'https://gtfs-static.translink.ca/gtfs/google_transit.zip'
 const CACHE_DIR = path.resolve(import.meta.dirname, '..', '.cache')
@@ -294,6 +300,40 @@ async function main() {
       `peak_only=${bandCounts.peak_only}, night_only=${bandCounts.night_only}`,
   )
   console.log(`FTN-qualifying routes: ${ftnCount} / ${routeBands.size}`)
+
+  // Assemble the frequencies.json output.
+  const frequencies: FrequenciesFile = {}
+  for (const [routeId, ps] of patternsByRoute) {
+    const routeInfo = routeBands.get(routeId)!
+    const patterns: PatternFrequency[] = ps
+      .slice()
+      .sort((a, b) => b.trip_share - a.trip_share)
+      .map((p) => ({
+        pattern_id: p.summary.pattern_id,
+        shape_ids: [...p.summary.shape_ids].sort(),
+        representative_stop_id: p.summary.representative_stop_id,
+        trip_count: p.summary.trip_ids.length,
+        trip_share: Number(p.trip_share.toFixed(4)),
+        headways: p.headways,
+        hourly: p.hourly,
+      }))
+    const entry: RouteFrequency = {
+      route_id: routeId,
+      band: routeInfo.band,
+      ftn_qualifies: routeInfo.ftn_qualifies,
+      ftn_failure: routeInfo.ftn_failure,
+      patterns,
+    }
+    frequencies[routeId] = entry
+  }
+  fs.writeFileSync(
+    path.join(DATA_DIR, 'frequencies.json'),
+    JSON.stringify(frequencies),
+  )
+  const freqSize = fs.statSync(path.join(DATA_DIR, 'frequencies.json')).size
+  console.log(
+    `Wrote public/data/frequencies.json (${Object.keys(frequencies).length} routes, ${fmtBytes(freqSize)})`,
+  )
 
   const routesRaw = shapesToRouteGeoJSON(shapes, shapeToRoute)
   const routesSimplified = await simplifyRoutes(routesRaw, 20)
