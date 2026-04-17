@@ -93,6 +93,7 @@ export interface PatternSummary {
 export interface TripPatternWithMeta extends TripPattern {
   route_id: string
   shape_id: string
+  service_id: string
 }
 
 export function groupTripsByPattern(

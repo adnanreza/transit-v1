@@ -26,8 +26,15 @@ import {
   computeTripPattern,
   groupTripsByPattern,
   streamTripStopTimes,
+  type PatternSummary,
   type TripPatternWithMeta,
 } from './lib/patterns.ts'
+import {
+  computePatternFrequencies,
+  parseGtfsTime,
+  type PatternTimes,
+} from './lib/headways.ts'
+import type { DayType } from './types/frequencies.ts'
 
 const GTFS_URL = 'https://gtfs-static.translink.ca/gtfs/google_transit.zip'
 const CACHE_DIR = path.resolve(import.meta.dirname, '..', '.cache')
@@ -184,12 +191,50 @@ async function main() {
       ...pattern,
       route_id: meta.route_id,
       shape_id: meta.shape_id,
+      service_id: meta.service_id,
     })
   }
   const patterns = groupTripsByPattern(tripPatterns)
   console.log(
     `Trips with patterns: ${tripPatterns.length}, unique patterns: ${patterns.size}`,
   )
+
+  // Bucket arrival times per (pattern, day type) and compute headways.
+  const patternTimes = new Map<string, PatternTimes>()
+  const tripsByIdPattern = new Map(tripPatterns.map((t) => [t.trip_id, t]))
+  for (const pattern of patterns.values()) {
+    const times: PatternTimes = { weekday: [], saturday: [], sunday: [] }
+    for (const tripId of pattern.trip_ids) {
+      const t = tripsByIdPattern.get(tripId)
+      if (!t) continue
+      const timeSec = parseGtfsTime(t.first_arrival_time)
+      if (timeSec < 0) continue
+      for (const dayType of ['weekday', 'saturday', 'sunday'] as DayType[]) {
+        if (dayServices[dayType].has(t.service_id)) {
+          times[dayType].push(timeSec)
+        }
+      }
+    }
+    patternTimes.set(pattern.pattern_id, times)
+  }
+  const patternFrequencies = new Map<
+    string,
+    ReturnType<typeof computePatternFrequencies> & { summary: PatternSummary }
+  >()
+  for (const [patternId, times] of patternTimes) {
+    const summary = patterns.get(patternId)!
+    patternFrequencies.set(patternId, { ...computePatternFrequencies(times), summary })
+  }
+  const sampleWithService = [...patternFrequencies.values()]
+    .filter((p) => p.headways.weekday.am_peak !== null)
+    .slice(0, 3)
+  console.log(`Computed frequencies for ${patternFrequencies.size} patterns`)
+  for (const p of sampleWithService) {
+    console.log(
+      `  Pattern ${p.summary.pattern_id} route ${p.summary.route_id}: ` +
+        `weekday AM peak headway ${p.headways.weekday.am_peak?.toFixed(1)} min`,
+    )
+  }
 
   const routesRaw = shapesToRouteGeoJSON(shapes, shapeToRoute)
   const routesSimplified = await simplifyRoutes(routesRaw, 20)
