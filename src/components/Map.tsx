@@ -6,6 +6,8 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 
 const INITIAL_CENTER: [number, number] = [-123.05, 49.25]
 const INITIAL_ZOOM = 10
+const ROUTES_URL = '/data/routes.geojson'
+const FALLBACK_ROUTE_COLOR = '#888888'
 
 export function Map() {
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -21,6 +23,32 @@ export function Map() {
       style: buildMapStyle(getPmtilesUrl()),
       center: INITIAL_CENTER,
       zoom: INITIAL_ZOOM,
+    })
+
+    map.on('load', () => {
+      map.addSource('routes', {
+        type: 'geojson',
+        data: ROUTES_URL,
+      })
+
+      map.addLayer({
+        id: 'routes-lines',
+        type: 'line',
+        source: 'routes',
+        layout: {
+          'line-cap': 'round',
+          'line-join': 'round',
+        },
+        paint: {
+          'line-color': [
+            'case',
+            ['==', ['get', 'route_color'], ''],
+            FALLBACK_ROUTE_COLOR,
+            ['concat', '#', ['get', 'route_color']],
+          ],
+          'line-width': ['interpolate', ['linear'], ['zoom'], 9, 1, 13, 2.5, 16, 4],
+        },
+      })
     })
 
     return () => {
