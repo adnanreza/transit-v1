@@ -16,6 +16,12 @@ import {
   stopsToGeoJSON,
   type RouteFeatureCollection,
 } from './lib/gtfs.ts'
+import {
+  dayTypeServiceIds,
+  parseCalendar,
+  parseCalendarDates,
+  pickRepresentativeDates,
+} from './lib/calendar.ts'
 
 const GTFS_URL = 'https://gtfs-static.translink.ca/gtfs/google_transit.zip'
 const CACHE_DIR = path.resolve(import.meta.dirname, '..', '.cache')
@@ -131,7 +137,24 @@ async function main() {
   console.log(`Routes (fixed-route only): ${routes.length}`)
   console.log(`Stops: ${stops.length}`)
 
-  const tripsCsv = await readTextFromZip(zipPath, 'trips.txt')
+  const [calendarCsv, calendarDatesCsv, tripsCsv] = await Promise.all([
+    readTextFromZip(zipPath, 'calendar.txt'),
+    readTextFromZip(zipPath, 'calendar_dates.txt'),
+    readTextFromZip(zipPath, 'trips.txt'),
+  ])
+  const calendar = parseCalendar(calendarCsv)
+  const calendarDates = parseCalendarDates(calendarDatesCsv)
+  const repDates = pickRepresentativeDates(new Date(), calendar, calendarDates)
+  const dayServices = dayTypeServiceIds(repDates, calendar, calendarDates)
+  console.log(
+    `Representative dates — weekday: ${repDates.weekday.toISOString().slice(0, 10)} ` +
+      `(${dayServices.weekday.size} services), ` +
+      `saturday: ${repDates.saturday.toISOString().slice(0, 10)} ` +
+      `(${dayServices.saturday.size}), ` +
+      `sunday: ${repDates.sunday.toISOString().slice(0, 10)} ` +
+      `(${dayServices.sunday.size})`,
+  )
+
   const trips = parseTrips(tripsCsv)
   const shapeToRoute = buildShapeToRouteMap(trips, routes)
   console.log(`Shape → route mappings: ${shapeToRoute.size}`)
