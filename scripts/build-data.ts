@@ -3,6 +3,7 @@ import path from 'node:path'
 import crypto from 'node:crypto'
 import { pipeline } from 'node:stream/promises'
 import mapshaper from 'mapshaper'
+import { parse as parseCsv } from 'csv-parse/sync'
 import { openZipEntry, readTextFromZip } from './lib/extract.ts'
 import {
   buildShapeToRouteMap,
@@ -100,8 +101,24 @@ export async function downloadGtfs(): Promise<GtfsDownload> {
   return { path: CACHE_FILE, sha256: newHash, cached: false, lastModified }
 }
 
+interface Meta {
+  feed_version: string
+  generated_at: string
+  translink_attribution: string
+  translink_disclaimer: string
+  osm_attribution: string
+}
+
+// Attribution strings are verbatim-required by TransLink's license.
+// See context/features/02-data-pipeline-foundation.md for the source.
+const TRANSLINK_ATTRIBUTION =
+  'Route and arrival data used in this product or service is provided by permission of TransLink.'
+const TRANSLINK_DISCLAIMER =
+  'TransLink assumes no responsibility for the accuracy or currency of the Data used in this product or service.'
+const OSM_ATTRIBUTION = 'Map data © OpenStreetMap contributors'
+
 async function main() {
-  const { path: zipPath } = await downloadGtfs()
+  const { path: zipPath, sha256: feedSha } = await downloadGtfs()
 
   const [routesCsv, stopsCsv] = await Promise.all([
     readTextFromZip(zipPath, 'routes.txt'),
@@ -147,6 +164,34 @@ async function main() {
   console.log(
     `Wrote public/data/routes.geojson (${routesSimplified.features.length} features, ${fmtBytes(routesSize)})`,
   )
+
+  const meta: Meta = {
+    feed_version: await resolveFeedVersion(zipPath, feedSha),
+    generated_at: new Date().toISOString(),
+    translink_attribution: TRANSLINK_ATTRIBUTION,
+    translink_disclaimer: TRANSLINK_DISCLAIMER,
+    osm_attribution: OSM_ATTRIBUTION,
+  }
+  fs.writeFileSync(path.join(DATA_DIR, 'meta.json'), JSON.stringify(meta, null, 2))
+  console.log(`Wrote public/data/meta.json (feed_version: ${meta.feed_version})`)
+}
+
+// Prefer feed_info.txt's feed_version if the feed ships one; fall back to the
+// first 12 hex chars of the zip's SHA-256 for a deterministic version string.
+async function resolveFeedVersion(zipPath: string, sha256Hex: string): Promise<string> {
+  try {
+    const csv = await readTextFromZip(zipPath, 'feed_info.txt')
+    const rows = parseCsv(csv, {
+      columns: true,
+      skip_empty_lines: true,
+      bom: true,
+    }) as Record<string, string>[]
+    const version = rows[0]?.feed_version
+    if (version) return version
+  } catch {
+    // feed_info.txt not present
+  }
+  return sha256Hex.slice(0, 12)
 }
 
 function countVertices(fc: RouteFeatureCollection): number {
