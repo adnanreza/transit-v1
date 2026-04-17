@@ -22,6 +22,12 @@ import {
   parseCalendarDates,
   pickRepresentativeDates,
 } from './lib/calendar.ts'
+import {
+  computeTripPattern,
+  groupTripsByPattern,
+  streamTripStopTimes,
+  type TripPatternWithMeta,
+} from './lib/patterns.ts'
 
 const GTFS_URL = 'https://gtfs-static.translink.ca/gtfs/google_transit.zip'
 const CACHE_DIR = path.resolve(import.meta.dirname, '..', '.cache')
@@ -162,6 +168,28 @@ async function main() {
   const shapesStream = await openZipEntry(zipPath, 'shapes.txt')
   const shapes = await collectShapes(shapesStream, new Set(shapeToRoute.keys()))
   console.log(`Shapes collected: ${shapes.size}`)
+
+  const fixedRouteTrips = new Map(
+    trips
+      .filter((t) => shapeToRoute.has(t.shape_id))
+      .map((t) => [t.trip_id, t]),
+  )
+  const stopTimesStream = await openZipEntry(zipPath, 'stop_times.txt')
+  const tripPatterns: TripPatternWithMeta[] = []
+  for await (const trip of streamTripStopTimes(stopTimesStream)) {
+    const meta = fixedRouteTrips.get(trip.trip_id)
+    if (!meta) continue
+    const pattern = computeTripPattern(trip.trip_id, trip.rows)
+    tripPatterns.push({
+      ...pattern,
+      route_id: meta.route_id,
+      shape_id: meta.shape_id,
+    })
+  }
+  const patterns = groupTripsByPattern(tripPatterns)
+  console.log(
+    `Trips with patterns: ${tripPatterns.length}, unique patterns: ${patterns.size}`,
+  )
 
   const routesRaw = shapesToRouteGeoJSON(shapes, shapeToRoute)
   const routesSimplified = await simplifyRoutes(routesRaw, 20)
