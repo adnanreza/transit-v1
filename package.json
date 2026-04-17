@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "test": "vitest run",
     "preview": "vite preview",
-    "prepare-data": "tsx scripts/build-data.ts"
+    "prepare-data": "tsx scripts/build-data.ts",
+    "prepare-basemap": "scripts/prepare-basemap.sh"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.2.8",
