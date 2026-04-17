@@ -43,7 +43,10 @@ Execute the requested action: $ARGUMENTS
 | `test` | Write and run tests for testable logic (data pipeline, utils) |
 | `review` | Check goals met, scope, performance budget, attribution |
 | `explain` | Document what changed and why (used as PR body) |
-| `complete` | Lint, typecheck, test, push branch, open PR |
+| `complete` | Lint, typecheck, test, push branch, open PR. **Stops before merge.** |
+| `cleanup` | Run *after* the PR is merged on GitHub: sync main, delete branches, reset tracking file, record in History |
+
+**Workflow handoff:** `complete` opens the PR and stops. The human reviews and merges on GitHub (possibly in a later session). Once merged, `cleanup` finalizes. Keeping these as separate actions means a new session can pick up a merged feature without having been present when it was opened.
 
 See [actions/](actions/) for detailed instructions.
 
