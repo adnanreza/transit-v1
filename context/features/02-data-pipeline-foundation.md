@@ -10,7 +10,7 @@ The build-time GTFS pipeline, minus the frequency math. Downloads TransLink's fe
   3. Emits three outputs under `public/data/`.
 - **`public/data/routes.geojson`** — `FeatureCollection` of `LineString` features, one per shape referenced by at least one trip. Each feature carries `route_id`, `route_short_name`, `route_long_name`, `route_type`, `route_color`, `route_text_color` in its properties. Simplified via mapshaper. **Target: <3 MB gzipped** (per SPEC).
 - **`public/data/stops.geojson`** — `FeatureCollection` of `Point` features for every fixed-route stop with `stop_id` and `stop_name` in properties. **Target: <500 KB gzipped.**
-- **`public/data/meta.json`** — `{ feed_version, generated_at, translink_attribution, osm_attribution }`. Small, human-readable.
+- **`public/data/meta.json`** — `{ feed_version, generated_at, translink_attribution, translink_disclaimer, osm_attribution }`. Uses the exact attribution strings TransLink's license requires (see Notes).
 - **HandyDART excluded.** SPEC decision: not fixed-route, not the audience. Filter at the routes level before anything else references route_ids.
 - **Streaming parse for `shapes.txt`** (and anything else that could exceed ~20 MB raw). Never `readFile` these wholesale.
 - **Unit tests** (Vitest) for the pure helpers: route filtering, shape grouping, property extraction. Use small hand-rolled GTFS fixtures, not the real feed.
@@ -37,7 +37,12 @@ The build-time GTFS pipeline, minus the frequency math. Downloads TransLink's fe
 
 ## Notes
 
-- **TransLink GTFS URL:** expected to be `https://gtfs.translink.ca/gtfs/google_transit.zip`. Confirm before committing it as a constant; if wrong, update `scripts/build-data.ts` and re-run.
+- **TransLink GTFS URL (verified 2026-04-17):** `https://gtfs-static.translink.ca/gtfs/google_transit.zip`. Served anonymously from Azure Blob Storage (no API key, no registration). The old `gtfs.translink.ca` host now returns 403 — TransLink migrated the static feed. Honor `Last-Modified` / `If-Modified-Since` to avoid re-downloading unchanged feeds; TransLink's server supports it.
+- **TransLink attribution strings (required verbatim by TransLink's license):**
+  - `translink_attribution`: `"Route and arrival data used in this product or service is provided by permission of TransLink."`
+  - `translink_disclaimer`: `"TransLink assumes no responsibility for the accuracy or currency of the Data used in this product or service."`
+  - Both must appear somewhere visible to the user (footer / about page / attribution dialog). 02 only bakes them into `meta.json`; a separate small PR updates the App footer and README to use the required wording.
+- **OSM attribution string:** `"Map data © OpenStreetMap contributors"`, linked to https://www.openstreetmap.org/copyright.
 - **TS execution:** use `tsx` as a dev dep (`npm install -D tsx`) so `npm run prepare-data` → `tsx scripts/build-data.ts` works on both Node 20 and 22 without compiling or relying on experimental flags.
 - **CSV parsing:** `csv-parse` (node-csv) has a streaming API (`csv-parse` with `on('readable')`). Prefer it over `papaparse` for streaming.
 - **Simplification:** `mapshaper` has a Node API. A command like `mapshaper -i routes.raw.geojson -simplify 10% keep-shapes -o routes.geojson` works. Tune the percentage to hit the budget.
