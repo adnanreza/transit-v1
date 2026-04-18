@@ -85,11 +85,12 @@ function lineColor(
   day: DayType,
   window: TimeWindow,
   thresholds: BandThresholds,
+  theme: 'dark' | 'light',
 ): ExpressionSpecification {
   return [
     'case',
     isBus,
-    busColorExpression(frequencies, day, window, thresholds),
+    busColorExpression(frequencies, day, window, thresholds, theme),
     rapidTransitColor,
   ]
 }
@@ -213,7 +214,7 @@ function addRouteLayers(
   addStopsLayer(map, theme)
 
   const bands = buildBandFilters(frequencies)
-  const color = lineColor(frequencies, day, window, thresholds)
+  const color = lineColor(frequencies, day, window, thresholds, theme)
   const opacity = lineOpacity(frequencies, day, window, thresholds)
 
   // Dashed (peak-only / night-only) paints below so rapid transit and regular
@@ -309,9 +310,10 @@ function repaintBands(
   day: DayType,
   window: TimeWindow,
   thresholds: BandThresholds,
+  theme: 'dark' | 'light',
 ) {
   if (!map.getLayer('routes-lines-solid')) return
-  const color = lineColor(frequencies, day, window, thresholds)
+  const color = lineColor(frequencies, day, window, thresholds, theme)
   const opacity = lineOpacity(frequencies, day, window, thresholds)
   for (const id of ROUTE_LAYER_IDS) {
     map.setPaintProperty(id, 'line-color', color)
@@ -502,8 +504,8 @@ export function Map({
   useEffect(() => {
     const map = mapRef.current
     if (!map || frequencies.status !== 'ready') return
-    repaintBands(map, frequencies.data, day, window, thresholds)
-  }, [frequencies, day, window, thresholds])
+    repaintBands(map, frequencies.data, day, window, thresholds, theme)
+  }, [frequencies, day, window, thresholds, theme])
 
   useEffect(() => {
     const map = mapRef.current

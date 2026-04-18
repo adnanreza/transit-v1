@@ -141,7 +141,7 @@ export default function App() {
       <div className="pointer-events-none absolute bottom-3 left-3 flex flex-col gap-2">
         <div className="pointer-events-auto flex w-72 flex-col gap-4 rounded-md bg-white/80 p-3 text-xs text-neutral-700 shadow-lg ring-1 ring-black/10 backdrop-blur dark:bg-neutral-950/80 dark:text-neutral-300 dark:ring-white/10">
           <ModeFilter enabled={enabledModes} onChange={setEnabledModes} />
-          <ThresholdSlider thresholds={thresholds} onChange={setThresholds} />
+          <ThresholdSlider thresholds={thresholds} theme={resolvedTheme} onChange={setThresholds} />
         </div>
         <FrequencyControls
           day={day}
@@ -154,7 +154,7 @@ export default function App() {
         <ThemeToggle pref={themePref} onChange={setThemePref} />
       </div>
       <div className="pointer-events-none absolute bottom-12 right-3">
-        <Legend thresholds={thresholds} />
+        <Legend thresholds={thresholds} theme={resolvedTheme} />
       </div>
       <Suspense fallback={null}>
         <RouteDetailPanel
@@ -166,6 +166,7 @@ export default function App() {
           day={day}
           window={window}
           thresholds={thresholds}
+          theme={resolvedTheme}
           onClose={() => setSelectedRouteId(null)}
         />
       </Suspense>

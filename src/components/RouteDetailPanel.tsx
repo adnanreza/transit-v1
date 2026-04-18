@@ -7,7 +7,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { RouteFrequencyChart } from '@/components/RouteFrequencyChart'
-import { BAND_COLORS } from '@/lib/band-palette'
+import { bandColors } from '@/lib/band-palette'
 import { bandLabel } from '@/lib/band-label'
 import { formatFtnFailure } from '@/lib/ftn-format'
 import { routeBandAt, type BandThresholds } from '@/lib/route-band'
@@ -31,6 +31,7 @@ interface RouteDetailPanelProps {
   day: DayType
   window: TimeWindow
   thresholds: BandThresholds
+  theme: 'dark' | 'light'
   onClose: () => void
 }
 
@@ -44,12 +45,13 @@ function badgeColor(
   day: DayType,
   win: TimeWindow,
   thresholds: BandThresholds,
+  theme: 'dark' | 'light',
 ): string {
   if (entry.route_type !== BUS_ROUTE_TYPE && entry.route_color) {
     return `#${entry.route_color}`
   }
   const band = routeBandAt(route, day, win, thresholds) ?? route.band
-  return BAND_COLORS[band] ?? '#525252'
+  return bandColors(theme)[band] ?? '#525252'
 }
 
 export default function RouteDetailPanel({
@@ -59,6 +61,7 @@ export default function RouteDetailPanel({
   day,
   window,
   thresholds,
+  theme,
   onClose,
 }: RouteDetailPanelProps) {
   // Keep the last-known routeId around during the closing animation so the
@@ -123,6 +126,7 @@ export default function RouteDetailPanel({
                       day,
                       window,
                       thresholds,
+                      theme,
                     ),
                   }}
                   aria-label={`Route ${entry.route_short_name}`}

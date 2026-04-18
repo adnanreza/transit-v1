@@ -1,4 +1,4 @@
-import { BAND_COLORS, NO_SERVICE_COLOR } from '@/lib/band-palette'
+import { bandColors, NO_SERVICE_COLOR } from '@/lib/band-palette'
 import {
   DEFAULT_THRESHOLDS,
   type BandThresholds,
@@ -6,6 +6,7 @@ import {
 
 interface Props {
   thresholds: BandThresholds
+  theme: 'dark' | 'light'
 }
 
 interface Row {
@@ -15,22 +16,23 @@ interface Row {
   dimmed?: boolean
 }
 
-export function Legend({ thresholds }: Props) {
+export function Legend({ thresholds, theme }: Props) {
   const frequentMatchesFtn =
     thresholds.frequent === DEFAULT_THRESHOLDS.frequent
+  const palette = bandColors(theme)
 
   const rows: Row[] = [
-    { label: `\u2264 ${thresholds.very_frequent} min`, color: BAND_COLORS.very_frequent },
+    { label: `\u2264 ${thresholds.very_frequent} min`, color: palette.very_frequent },
     {
       label: frequentMatchesFtn
         ? `\u2264 ${thresholds.frequent} min (FTN)`
         : `\u2264 ${thresholds.frequent} min`,
-      color: BAND_COLORS.frequent,
+      color: palette.frequent,
     },
-    { label: `\u2264 ${thresholds.standard} min`, color: BAND_COLORS.standard },
-    { label: `> ${thresholds.standard} min`, color: BAND_COLORS.infrequent },
-    { label: 'Peak only', color: BAND_COLORS.peak_only, dashed: true },
-    { label: 'Night only', color: BAND_COLORS.night_only, dashed: true },
+    { label: `\u2264 ${thresholds.standard} min`, color: palette.standard },
+    { label: `> ${thresholds.standard} min`, color: palette.infrequent },
+    { label: 'Peak only', color: palette.peak_only, dashed: true },
+    { label: 'Night only', color: palette.night_only, dashed: true },
     { label: 'No service', color: NO_SERVICE_COLOR, dimmed: true },
   ]
 
