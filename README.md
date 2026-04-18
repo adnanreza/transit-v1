@@ -1,5 +1,7 @@
 # Metro Vancouver Frequent Transit Map
 
+**Live:** [yvrtransit.netlify.app](https://yvrtransit.netlify.app/)
+
 An interactive web map of TransLink's transit network, color-coded by service frequency. Distinguishes routes that qualify for the **Frequent Transit Network** (median headway ≤15 min every hour 06:00–21:00, on weekday + Saturday + Sunday) from peak-only and infrequent service.
 
 TransLink's own maps are static PDFs and don't treat frequency as a first-class concept — this project fills that gap with a fast, frontend-only, static site.
@@ -44,7 +46,7 @@ The basemap extract is gitignored (30 MB, regenerated per deploy). GTFS-derived 
 
 ## Deploy model
 
-Auto-deployed to [Netlify](https://www.netlify.com/) on push to `main`. PR previews build at `deploy-preview-<n>--<site>.netlify.app` for every open pull request.
+Auto-deployed to [Netlify](https://www.netlify.com/) on push to `main` — production at [yvrtransit.netlify.app](https://yvrtransit.netlify.app/). PR previews build at `deploy-preview-<n>--yvrtransit.netlify.app` for every open pull request.
 
 Netlify build config:
 - **Command:** `npm run prepare-basemap && npm run build` (extracts fresh basemap, then Vite builds)
