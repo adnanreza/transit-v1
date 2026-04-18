@@ -155,10 +155,27 @@ const stopCircleRadius: ExpressionSpecification = [
   4,
 ]
 
+// Stop-circle colors per theme. Dark-bg: muted off-white fill on a dark
+// hairline stroke. Light-bg: inverted — dark slate fill on a light hairline.
+// The inversion keeps the dot legible against whichever route color passes
+// near it at crossings (yellow, teal, etc.) on either background tone.
+const STOP_FILL: Record<'dark' | 'light', string> = {
+  dark: '#d4d4d4',
+  light: '#404040',
+}
+const STOP_STROKE: Record<'dark' | 'light', string> = {
+  dark: '#0a0a0a',
+  light: '#f5f5f5',
+}
+const SELECTED_HIGHLIGHT: Record<'dark' | 'light', string> = {
+  dark: '#ffffff',
+  light: '#0a0a0a',
+}
+
 // Stops paint below routes so route-hover / route-click hit priority wins
 // when a cursor lands on a route that runs past a stop. Add this layer before
 // any of the route layers so the MapLibre z-order matches.
-function addStopsLayer(map: maplibregl.Map) {
+function addStopsLayer(map: maplibregl.Map, theme: 'dark' | 'light') {
   if (map.getLayer(STOPS_LAYER_ID)) return
   if (!map.getSource('stops')) {
     map.addSource('stops', { type: 'geojson', data: STOPS_URL })
@@ -169,10 +186,10 @@ function addStopsLayer(map: maplibregl.Map) {
     source: 'stops',
     minzoom: 13,
     paint: {
-      'circle-color': '#d4d4d4',
+      'circle-color': STOP_FILL[theme],
       'circle-opacity': 0.85,
       'circle-radius': stopCircleRadius,
-      'circle-stroke-color': '#0a0a0a',
+      'circle-stroke-color': STOP_STROKE[theme],
       'circle-stroke-width': 1,
     },
   })
@@ -185,6 +202,7 @@ function addRouteLayers(
   window: TimeWindow,
   enabledModes: ReadonlySet<Mode>,
   thresholds: BandThresholds,
+  theme: 'dark' | 'light',
 ) {
   if (map.getLayer('routes-lines-solid')) return
 
@@ -192,7 +210,7 @@ function addRouteLayers(
     map.addSource('routes', { type: 'geojson', data: ROUTES_URL })
   }
 
-  addStopsLayer(map)
+  addStopsLayer(map, theme)
 
   const bands = buildBandFilters(frequencies)
   const color = lineColor(frequencies, day, window, thresholds)
@@ -247,7 +265,7 @@ function addRouteLayers(
       'line-join': 'round',
     },
     paint: {
-      'line-color': '#ffffff',
+      'line-color': SELECTED_HIGHLIGHT[theme],
       'line-width': selectedLineWidth,
       'line-opacity': 0,
       'line-opacity-transition': { duration: HIGHLIGHT_FADE_MS, delay: 0 },
@@ -469,15 +487,15 @@ export function Map({
     if (!map || frequencies.status !== 'ready') return
 
     const apply = () =>
-      addRouteLayers(map, frequencies.data, day, window, enabledModes, thresholds)
+      addRouteLayers(map, frequencies.data, day, window, enabledModes, thresholds, theme)
     if (map.isStyleLoaded()) {
       apply()
     } else {
       map.once('load', apply)
     }
-    // day/window/enabledModes/thresholds intentionally omitted — this effect
-    // seeds the initial state; live updates come from the repaint/filter
-    // effects below.
+    // day/window/enabledModes/thresholds/theme intentionally omitted — this
+    // effect seeds the initial state; live updates come from the repaint /
+    // filter / theme-swap effects below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [frequencies])
 
@@ -508,7 +526,7 @@ export function Map({
     map.setStyle(buildMapStyle(getPmtilesUrl(), theme), { diff: true })
     map.once('style.load', () => {
       if (frequencies.status !== 'ready') return
-      addRouteLayers(map, frequencies.data, day, window, enabledModes, thresholds)
+      addRouteLayers(map, frequencies.data, day, window, enabledModes, thresholds, theme)
     })
     // day / window / enabledModes / thresholds intentionally omitted —
     // repaint/filter effects below reconcile those independently after the
