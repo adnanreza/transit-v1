@@ -61,8 +61,8 @@ function Tick({
         className="inline-block h-[3px] w-4 shrink-0 rounded-full"
         style={{ backgroundColor: color }}
       />
-      <span className="text-neutral-400">{label}</span>
-      <span className="ml-auto tabular-nums text-neutral-300">≤{value}</span>
+      <span className="text-neutral-600 dark:text-neutral-400">{label}</span>
+      <span className="ml-auto tabular-nums text-neutral-700 dark:text-neutral-300">≤{value}</span>
     </div>
   )
 }

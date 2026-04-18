@@ -83,8 +83,8 @@ interface DayMultipleProps {
 
 function DayMultiple({ label, data, yMax }: DayMultipleProps) {
   return (
-    <figure className="rounded-md bg-neutral-950/40 p-2 ring-1 ring-white/5">
-      <figcaption className="px-1 pb-1 text-[11px] font-medium text-neutral-300">
+    <figure className="rounded-md bg-neutral-200/40 p-2 ring-1 ring-black/5 dark:bg-neutral-950/40 dark:ring-white/5">
+      <figcaption className="px-1 pb-1 text-[11px] font-medium text-neutral-700 dark:text-neutral-300">
         {label}
       </figcaption>
       <div className="h-24 w-full">

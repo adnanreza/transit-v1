@@ -28,15 +28,15 @@ export function RouteTooltip({
 }: RouteTooltipProps) {
   return (
     <div
-      className="pointer-events-none absolute z-50 max-w-xs rounded-md bg-neutral-950/90 px-2.5 py-1.5 text-xs text-neutral-100 shadow-lg ring-1 ring-white/10 backdrop-blur"
+      className="pointer-events-none absolute z-50 max-w-xs rounded-md bg-white/90 px-2.5 py-1.5 text-xs text-neutral-900 shadow-lg ring-1 ring-black/10 backdrop-blur dark:bg-neutral-950/90 dark:text-neutral-100 dark:ring-white/10"
       style={{ transform: `translate(${x + 14}px, ${y + 14}px)` }}
       role="tooltip"
     >
       <div className="flex items-baseline gap-1.5">
         <span className="font-semibold">{shortName}</span>
-        <span className="text-neutral-300">{truncate(longName, MAX_LONG_NAME)}</span>
+        <span className="text-neutral-700 dark:text-neutral-300">{truncate(longName, MAX_LONG_NAME)}</span>
       </div>
-      <div className="text-[11px] text-neutral-400">{bandLabel}</div>
+      <div className="text-[11px] text-neutral-600 dark:text-neutral-400">{bandLabel}</div>
     </div>
   )
 }

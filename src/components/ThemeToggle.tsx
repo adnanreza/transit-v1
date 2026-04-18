@@ -35,7 +35,7 @@ export function ThemeToggle({ pref, onChange }: ThemeToggleProps) {
     <Button
       variant="ghost"
       size="icon"
-      className="pointer-events-auto bg-neutral-950/80 text-neutral-300 shadow-lg ring-1 ring-white/10 backdrop-blur hover:bg-neutral-900/80 hover:text-neutral-100"
+      className="pointer-events-auto bg-white/80 text-neutral-700 shadow-lg ring-1 ring-black/10 backdrop-blur hover:bg-neutral-100/80 hover:text-neutral-950 dark:bg-neutral-950/80 dark:text-neutral-300 dark:ring-white/10 dark:hover:bg-neutral-900/80 dark:hover:text-neutral-100"
       onClick={() => onChange(nextPref)}
       aria-label={LABEL[pref]}
       title={`${LABEL[pref]} (click for ${nextPref})`}

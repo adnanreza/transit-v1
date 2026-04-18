@@ -110,7 +110,7 @@ export default function RouteDetailPanel({
         onPointerDownOutside={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
       >
-        <SheetHeader className="gap-2 border-b border-white/10 pb-4">
+        <SheetHeader className="gap-2 border-b border-black/10 pb-4 dark:border-white/10">
           {entry && route ? (
             <>
               <div className="flex items-start gap-3">
@@ -133,7 +133,7 @@ export default function RouteDetailPanel({
                   <SheetTitle className="truncate text-base leading-tight">
                     {entry.route_long_name}
                   </SheetTitle>
-                  <p className="mt-0.5 text-xs text-neutral-400">
+                  <p className="mt-0.5 text-xs text-neutral-600 dark:text-neutral-400">
                     {route.agency_name || 'Transit operator'}
                   </p>
                 </div>
@@ -180,7 +180,7 @@ function Termini({ route }: { route: RouteFrequency }) {
       >
         {majors.length === 1 ? 'Terminus' : 'Termini'}
       </h3>
-      <ul className="flex flex-col gap-1 text-sm text-neutral-200">
+      <ul className="flex flex-col gap-1 text-sm text-neutral-800 dark:text-neutral-200">
         {majors.map((p) => (
           <li key={p.pattern_id} className="tabular-nums">
             <span>{p.first_stop_name || '—'}</span>
@@ -222,7 +222,7 @@ function FtnStatus({
         className={
           qualifies
             ? 'flex items-center gap-2 text-base font-medium text-emerald-400'
-            : 'flex items-center gap-2 text-base font-medium text-neutral-200'
+            : 'flex items-center gap-2 text-base font-medium text-neutral-800 dark:text-neutral-200'
         }
       >
         <span aria-hidden="true" className="text-lg leading-none">
@@ -230,7 +230,7 @@ function FtnStatus({
         </span>
         <span>{qualifies ? 'FTN-qualifying' : 'Not FTN-qualifying'}</span>
       </p>
-      <p className="text-xs text-neutral-400">
+      <p className="text-xs text-neutral-600 dark:text-neutral-400">
         {qualifies
           ? formatFtnFailure(null)
           : (route.ftn_failure
