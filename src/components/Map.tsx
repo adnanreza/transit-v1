@@ -11,6 +11,7 @@ import {
   busOpacityExpression,
   DEFAULT_OPACITY,
 } from '@/lib/band-palette'
+import { modeFilterExpression, type Mode } from '@/lib/modes'
 import type {
   DayType,
   FrequenciesFile,
@@ -81,11 +82,31 @@ const lineWidth: ExpressionSpecification = [
   ['case', isBus, 3.5, 7],
 ]
 
+function buildBandFilters(frequencies: FrequenciesFile) {
+  const dashedIdsFilter: FilterSpecification = [
+    'in',
+    ['get', 'route_id'],
+    ['literal', dashedRouteIds(frequencies)],
+  ]
+  return {
+    dashedIds: dashedIdsFilter,
+    solidIds: ['!', dashedIdsFilter] as FilterSpecification,
+  }
+}
+
+function composeFilter(
+  bandFilter: FilterSpecification,
+  enabledModes: ReadonlySet<Mode>,
+): FilterSpecification {
+  return ['all', bandFilter, modeFilterExpression(enabledModes)] as unknown as FilterSpecification
+}
+
 function addRouteLayers(
   map: maplibregl.Map,
   frequencies: FrequenciesFile,
   day: DayType,
   window: TimeWindow,
+  enabledModes: ReadonlySet<Mode>,
 ) {
   if (map.getLayer('routes-lines-solid')) return
 
@@ -93,13 +114,7 @@ function addRouteLayers(
     map.addSource('routes', { type: 'geojson', data: ROUTES_URL })
   }
 
-  const dashedFilter: FilterSpecification = [
-    'in',
-    ['get', 'route_id'],
-    ['literal', dashedRouteIds(frequencies)],
-  ]
-  const solidFilter: FilterSpecification = ['!', dashedFilter]
-
+  const bands = buildBandFilters(frequencies)
   const color = lineColor(frequencies, day, window)
   const opacity = lineOpacity(frequencies, day, window)
 
@@ -109,7 +124,7 @@ function addRouteLayers(
     id: 'routes-lines-dashed',
     type: 'line',
     source: 'routes',
-    filter: dashedFilter,
+    filter: composeFilter(bands.dashedIds, enabledModes),
     layout: {
       'line-cap': 'round',
       'line-join': 'round',
@@ -126,7 +141,7 @@ function addRouteLayers(
     id: 'routes-lines-solid',
     type: 'line',
     source: 'routes',
-    filter: solidFilter,
+    filter: composeFilter(bands.solidIds, enabledModes),
     layout: {
       'line-cap': 'round',
       'line-join': 'round',
@@ -138,6 +153,17 @@ function addRouteLayers(
       'line-width': lineWidth,
     },
   })
+}
+
+function updateModeFilters(
+  map: maplibregl.Map,
+  frequencies: FrequenciesFile,
+  enabledModes: ReadonlySet<Mode>,
+) {
+  if (!map.getLayer('routes-lines-solid')) return
+  const bands = buildBandFilters(frequencies)
+  map.setFilter('routes-lines-dashed', composeFilter(bands.dashedIds, enabledModes))
+  map.setFilter('routes-lines-solid', composeFilter(bands.solidIds, enabledModes))
 }
 
 function repaintBands(
@@ -158,9 +184,10 @@ function repaintBands(
 interface Props {
   day: DayType
   window: TimeWindow
+  enabledModes: ReadonlySet<Mode>
 }
 
-export function Map({ day, window }: Props) {
+export function Map({ day, window, enabledModes }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const frequencies = useFrequencies()
@@ -187,20 +214,21 @@ export function Map({ day, window }: Props) {
   }, [])
 
   // Add the route layers once per (map, frequencies) — not on every control
-  // change. Subsequent day/window tweaks update paint properties in the
-  // companion effect below without re-registering sources or layers.
+  // change. Subsequent day/window/mode tweaks update paint or filter props in
+  // the companion effects below without re-registering sources or layers.
   useEffect(() => {
     const map = mapRef.current
     if (!map || frequencies.status !== 'ready') return
 
-    const apply = () => addRouteLayers(map, frequencies.data, day, window)
+    const apply = () =>
+      addRouteLayers(map, frequencies.data, day, window, enabledModes)
     if (map.isStyleLoaded()) {
       apply()
     } else {
       map.once('load', apply)
     }
-    // day/window intentionally omitted — this effect seeds the initial paint;
-    // live updates come from the repaint effect.
+    // day/window/enabledModes intentionally omitted — this effect seeds the
+    // initial state; live updates come from the repaint/filter effects.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [frequencies])
 
@@ -209,6 +237,12 @@ export function Map({ day, window }: Props) {
     if (!map || frequencies.status !== 'ready') return
     repaintBands(map, frequencies.data, day, window)
   }, [frequencies, day, window])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || frequencies.status !== 'ready') return
+    updateModeFilters(map, frequencies.data, enabledModes)
+  }, [frequencies, enabledModes])
 
   return <div ref={containerRef} className="h-full w-full" />
 }
