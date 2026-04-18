@@ -13,11 +13,7 @@ import {
 } from '@/lib/band-palette'
 import { modeFilterExpression, type Mode } from '@/lib/modes'
 import type { BandThresholds } from '@/lib/route-band'
-import {
-  VIEW_DRIFT_LON_LAT,
-  VIEW_DRIFT_ZOOM,
-  type MapView,
-} from '@/lib/url-state'
+import { viewsDiffer, type MapView } from '@/lib/url-state'
 import type { FocusRequest } from '@/App'
 import type {
   DayType,
@@ -336,17 +332,7 @@ export function Map({
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
-    const last = lastAppliedViewRef.current
-    const lonDrift = Math.abs(view.center[0] - last.center[0])
-    const latDrift = Math.abs(view.center[1] - last.center[1])
-    const zoomDrift = Math.abs(view.zoom - last.zoom)
-    if (
-      lonDrift < VIEW_DRIFT_LON_LAT &&
-      latDrift < VIEW_DRIFT_LON_LAT &&
-      zoomDrift < VIEW_DRIFT_ZOOM
-    ) {
-      return
-    }
+    if (!viewsDiffer(view, lastAppliedViewRef.current)) return
     lastAppliedViewRef.current = view
     map.easeTo({ center: view.center, zoom: view.zoom, duration: 600 })
   }, [view])

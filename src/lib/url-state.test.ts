@@ -5,6 +5,8 @@ import {
   modeListParser,
   thresholdsParser,
   timeWindowParser,
+  viewsDiffer,
+  type MapView,
 } from './url-state'
 import { DEFAULT_THRESHOLDS } from './route-band'
 
@@ -101,6 +103,34 @@ describe('thresholdsParser', () => {
     expect(thresholdsParser.parse('15,10,30')).toBeNull()
     expect(thresholdsParser.parse('10,30,15')).toBeNull()
     expect(thresholdsParser.parse('10,10,30')).toBeNull()
+  })
+})
+
+describe('viewsDiffer', () => {
+  const base: MapView = { center: [-123.05, 49.25], zoom: 10 }
+
+  it('returns false for identical views', () => {
+    expect(viewsDiffer(base, { ...base })).toBe(false)
+  })
+
+  it('returns false for drift inside every threshold (the self-round-trip case)', () => {
+    const jittered: MapView = {
+      center: [-123.05 + 0.00005, 49.25 - 0.00005],
+      zoom: 10.005,
+    }
+    expect(viewsDiffer(base, jittered)).toBe(false)
+  })
+
+  it('fires when longitude drifts past the threshold', () => {
+    expect(viewsDiffer(base, { ...base, center: [-123.051, 49.25] })).toBe(true)
+  })
+
+  it('fires when latitude drifts past the threshold', () => {
+    expect(viewsDiffer(base, { ...base, center: [-123.05, 49.251] })).toBe(true)
+  })
+
+  it('fires when zoom drifts past the threshold', () => {
+    expect(viewsDiffer(base, { ...base, zoom: 10.5 })).toBe(true)
   })
 })
 

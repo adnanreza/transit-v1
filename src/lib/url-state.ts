@@ -173,6 +173,21 @@ export interface MapView {
   zoom: number
 }
 
+/**
+ * Decide whether a new view should trigger a camera ease. Used by Map's
+ * URL → camera sync effect to terminate the moveend → setUrl → view-prop →
+ * easeTo loop: our own writes round-trip to the same view and get filtered
+ * out here. Returns true only when at least one dimension exceeds its drift
+ * threshold.
+ */
+export function viewsDiffer(a: MapView, b: MapView): boolean {
+  return (
+    Math.abs(a.center[0] - b.center[0]) >= VIEW_DRIFT_LON_LAT ||
+    Math.abs(a.center[1] - b.center[1]) >= VIEW_DRIFT_LON_LAT ||
+    Math.abs(a.zoom - b.zoom) >= VIEW_DRIFT_ZOOM
+  )
+}
+
 export function useMapView(): [MapView, (next: MapView) => void] {
   const [center, setCenter] = useQueryState('c', centerParser)
   const [zoom, setZoom] = useQueryState('z', zoomParser)
