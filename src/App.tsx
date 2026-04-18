@@ -10,6 +10,7 @@ import {
   useDayType,
   useMapView,
   useModeFilter,
+  useResolvedTheme,
   useSelectedRoute,
   useTheme,
   useThresholds,
@@ -47,6 +48,7 @@ export default function App() {
   const [thresholds, setThresholds] = useThresholds()
   const [view, setView] = useMapView()
   const [themePref, setThemePref] = useTheme()
+  const resolvedTheme = useResolvedTheme()
   const [selectedRouteId, setSelectedRouteId] = useSelectedRoute()
   const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null)
   const routes = useRoutes()
@@ -69,7 +71,9 @@ export default function App() {
   }, [routes, selectedRouteId])
 
   return (
-    <div className="dark relative h-screen w-screen overflow-hidden bg-neutral-950 text-neutral-100">
+    <div
+      className={`${resolvedTheme === 'dark' ? 'dark' : ''} relative h-screen w-screen overflow-hidden bg-neutral-100 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100`}
+    >
       <Suspense fallback={<div className="h-full w-full" />}>
         <Map
           day={day}
