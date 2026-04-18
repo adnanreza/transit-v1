@@ -4,8 +4,12 @@ import { Legend } from '@/components/Legend'
 import { ModeFilter } from '@/components/ModeFilter'
 import { RouteSearch } from '@/components/RouteSearch'
 import { ThresholdSlider } from '@/components/ThresholdSlider'
-import { DEFAULT_THRESHOLDS, type BandThresholds } from '@/lib/route-band'
-import { useDayType, useModeFilter, useTimeWindow } from '@/lib/url-state'
+import {
+  useDayType,
+  useModeFilter,
+  useThresholds,
+  useTimeWindow,
+} from '@/lib/url-state'
 import { useRoutes, type RouteIndexEntry } from '@/lib/use-routes'
 
 // Code-split the map: maplibre-gl + pmtiles + protomaps-themes-base add up to
@@ -24,7 +28,7 @@ export default function App() {
   const [day, setDay] = useDayType()
   const [window, setWindow] = useTimeWindow()
   const [enabledModes, setEnabledModes] = useModeFilter()
-  const [thresholds, setThresholds] = useState<BandThresholds>(DEFAULT_THRESHOLDS)
+  const [thresholds, setThresholds] = useThresholds()
   const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null)
   const routes = useRoutes()
 

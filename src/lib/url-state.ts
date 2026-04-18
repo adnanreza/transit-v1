@@ -1,4 +1,5 @@
 import {
+  createParser,
   parseAsArrayOf,
   parseAsStringLiteral,
   useQueryState,
@@ -6,6 +7,7 @@ import {
 } from 'nuqs'
 import { useCallback, useMemo } from 'react'
 import { MODES, type Mode } from './modes'
+import { DEFAULT_THRESHOLDS, type BandThresholds } from './route-band'
 import type { DayType, TimeWindow } from '../../scripts/types/frequencies'
 
 export const DAY_TYPES = ['weekday', 'saturday', 'sunday'] as const satisfies DayType[]
@@ -69,4 +71,48 @@ export function useModeFilter(): [
   )
 
   return [enabled, setEnabled]
+}
+
+const MIN_THRESHOLD = 1
+const MAX_THRESHOLD = 60
+
+// Slider drag emits many intermediate states per second. Replace semantics
+// keep the back button useful — one entry per sustained control use, not one
+// per pixel of drag.
+const CONTINUOUS_OPTIONS = {
+  clearOnDefault: true,
+  history: 'replace',
+} as const satisfies Options
+
+const thresholdsParser = createParser<BandThresholds>({
+  parse: (value) => {
+    const parts = value.split(',')
+    if (parts.length !== 3) return null
+    const nums = parts.map(Number)
+    if (
+      !nums.every(
+        (n) =>
+          Number.isFinite(n) && n >= MIN_THRESHOLD && n <= MAX_THRESHOLD,
+      )
+    ) {
+      return null
+    }
+    const [vf, f, s] = nums
+    // Monotonic — the slider enforces this in the UI, but the URL is
+    // user-editable, so validate on parse.
+    if (!(vf < f && f < s)) return null
+    return { very_frequent: vf, frequent: f, standard: s }
+  },
+  serialize: ({ very_frequent, frequent, standard }) =>
+    `${very_frequent},${frequent},${standard}`,
+  eq: (a, b) =>
+    a.very_frequent === b.very_frequent &&
+    a.frequent === b.frequent &&
+    a.standard === b.standard,
+})
+  .withDefault(DEFAULT_THRESHOLDS)
+  .withOptions(CONTINUOUS_OPTIONS)
+
+export function useThresholds() {
+  return useQueryState('t', thresholdsParser)
 }
