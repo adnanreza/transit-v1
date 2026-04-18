@@ -26,6 +26,26 @@ const INITIAL_ZOOM = 10
 const ROUTES_URL = '/data/routes.geojson'
 const FALLBACK_ROUTE_COLOR = '#888888'
 const ROUTE_LAYER_IDS = ['routes-lines-solid', 'routes-lines-dashed'] as const
+const SELECTED_LAYER_ID = 'routes-lines-selected'
+const HIGHLIGHT_HOLD_MS = 1200
+const HIGHLIGHT_FADE_MS = 400
+const SELECTED_MATCHES_NONE: FilterSpecification = [
+  '==',
+  ['get', 'route_id'],
+  '',
+]
+
+const selectedLineWidth: ExpressionSpecification = [
+  'interpolate',
+  ['linear'],
+  ['zoom'],
+  9,
+  2.5,
+  13,
+  5.5,
+  16,
+  9,
+]
 
 // Rapid transit (SkyTrain / SeaBus / WCE) keeps its GTFS `route_color` because
 // those line colors are more recognizable to riders than a frequency band
@@ -158,6 +178,26 @@ function addRouteLayers(
       'line-width': lineWidth,
     },
   })
+
+  // Highlight overlay painted last so the selected route sits above everything
+  // else. Starts hidden; the focus effect below fills in the filter and pulses
+  // the opacity when a route is selected.
+  map.addLayer({
+    id: SELECTED_LAYER_ID,
+    type: 'line',
+    source: 'routes',
+    filter: SELECTED_MATCHES_NONE,
+    layout: {
+      'line-cap': 'round',
+      'line-join': 'round',
+    },
+    paint: {
+      'line-color': '#ffffff',
+      'line-width': selectedLineWidth,
+      'line-opacity': 0,
+      'line-opacity-transition': { duration: HIGHLIGHT_FADE_MS, delay: 0 },
+    },
+  })
 }
 
 function updateModeFilters(
@@ -270,6 +310,32 @@ export function Map({
       ],
       { padding: 80, duration: 600, maxZoom: 14 },
     )
+
+    if (!map.getLayer(SELECTED_LAYER_ID)) return
+
+    map.setFilter(SELECTED_LAYER_ID, [
+      '==',
+      ['get', 'route_id'],
+      focusRequest.route.route_id,
+    ])
+    map.setPaintProperty(SELECTED_LAYER_ID, 'line-opacity', 0.85)
+
+    const fadeTimer = setTimeout(() => {
+      map.setPaintProperty(SELECTED_LAYER_ID, 'line-opacity', 0)
+    }, HIGHLIGHT_HOLD_MS)
+
+    const clearTimer = setTimeout(
+      () => {
+        if (!map.getLayer(SELECTED_LAYER_ID)) return
+        map.setFilter(SELECTED_LAYER_ID, SELECTED_MATCHES_NONE)
+      },
+      HIGHLIGHT_HOLD_MS + HIGHLIGHT_FADE_MS + 100,
+    )
+
+    return () => {
+      clearTimeout(fadeTimer)
+      clearTimeout(clearTimer)
+    }
   }, [focusRequest])
 
   return <div ref={containerRef} className="h-full w-full" />
