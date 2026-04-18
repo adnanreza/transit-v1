@@ -1,9 +1,10 @@
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, useMemo, useState } from 'react'
 import { FrequencyControls } from '@/components/FrequencyControls'
 import { Legend } from '@/components/Legend'
 import { ModeFilter } from '@/components/ModeFilter'
 import { RouteSearch } from '@/components/RouteSearch'
 import { ThresholdSlider } from '@/components/ThresholdSlider'
+import { useFrequencies } from '@/lib/frequencies'
 import {
   useDayType,
   useMapView,
@@ -27,7 +28,12 @@ export interface FocusRequest {
 }
 
 export default function App() {
-  useUrlStateCleanup()
+  const frequencies = useFrequencies()
+  const knownRouteIds = useMemo(() => {
+    if (frequencies.status !== 'ready') return null
+    return new Set(Object.keys(frequencies.data))
+  }, [frequencies])
+  useUrlStateCleanup(knownRouteIds)
   const [day, setDay] = useDayType()
   const [window, setWindow] = useTimeWindow()
   const [enabledModes, setEnabledModes] = useModeFilter()

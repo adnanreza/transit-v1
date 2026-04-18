@@ -1,6 +1,7 @@
 import {
   createParser,
   parseAsFloat,
+  parseAsString,
   parseAsStringLiteral,
   useQueryState,
   type Options,
@@ -135,6 +136,14 @@ export function useThresholds() {
   return useQueryState('t', thresholdsParser)
 }
 
+// Selected route. Default is null (no panel). Unknown route_ids arriving in
+// the URL are stripped in useUrlStateCleanup once frequencies load.
+export const routeIdParser = parseAsString.withOptions(DISCRETE_OPTIONS)
+
+export function useSelectedRoute() {
+  return useQueryState('route', routeIdParser)
+}
+
 // Metro Vancouver default view, matched by the Map component at init.
 export const INITIAL_CENTER: [number, number] = [-123.05, 49.25]
 export const INITIAL_ZOOM = 10
@@ -198,7 +207,9 @@ export function viewsDiffer(a: MapView, b: MapView): boolean {
  * Valid params are never touched here — `clearOnDefault` handles stripping
  * default values on subsequent setter calls.
  */
-export function useUrlStateCleanup() {
+export function useUrlStateCleanup(
+  knownRouteIds?: ReadonlySet<string> | null,
+) {
   useEffect(() => {
     const url = new URL(window.location.href)
     const removed: string[] = []
@@ -223,6 +234,18 @@ export function useUrlStateCleanup() {
       window.history.replaceState(window.history.state, '', url)
     }
   }, [])
+
+  // `route=<id>` can only be validated once we've loaded the known route_ids
+  // from frequencies.json. Runs on the render where that set becomes available.
+  useEffect(() => {
+    if (!knownRouteIds) return
+    const url = new URL(window.location.href)
+    const value = url.searchParams.get('route')
+    if (value === null || knownRouteIds.has(value)) return
+    url.searchParams.delete('route')
+    console.warn(`Ignoring unknown URL param: route=${value}`)
+    window.history.replaceState(window.history.state, '', url)
+  }, [knownRouteIds])
 }
 
 export function useMapView(): [MapView, (next: MapView) => void] {
