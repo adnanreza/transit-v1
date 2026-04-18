@@ -24,6 +24,8 @@ import type {
 } from '../../scripts/types/frequencies'
 import 'maplibre-gl/dist/maplibre-gl.css'
 const ROUTES_URL = '/data/routes.geojson'
+const STOPS_URL = '/data/stops.geojson'
+const STOPS_LAYER_ID = 'stops-circles'
 const FALLBACK_ROUTE_COLOR = '#888888'
 const ROUTE_LAYER_IDS = ['routes-lines-solid', 'routes-lines-dashed'] as const
 const SELECTED_LAYER_ID = 'routes-lines-selected'
@@ -125,6 +127,28 @@ function composeFilter(
   return ['all', bandFilter, modeFilterExpression(enabledModes)] as unknown as FilterSpecification
 }
 
+// Stops paint below routes so route-hover / route-click hit priority wins
+// when a cursor lands on a route that runs past a stop. Add this layer before
+// any of the route layers so the MapLibre z-order matches.
+function addStopsLayer(map: maplibregl.Map) {
+  if (map.getLayer(STOPS_LAYER_ID)) return
+  if (!map.getSource('stops')) {
+    map.addSource('stops', { type: 'geojson', data: STOPS_URL })
+  }
+  map.addLayer({
+    id: STOPS_LAYER_ID,
+    type: 'circle',
+    source: 'stops',
+    paint: {
+      'circle-color': '#d4d4d4',
+      'circle-opacity': 0.85,
+      'circle-radius': 2,
+      'circle-stroke-color': '#0a0a0a',
+      'circle-stroke-width': 1,
+    },
+  })
+}
+
 function addRouteLayers(
   map: maplibregl.Map,
   frequencies: FrequenciesFile,
@@ -138,6 +162,8 @@ function addRouteLayers(
   if (!map.getSource('routes')) {
     map.addSource('routes', { type: 'geojson', data: ROUTES_URL })
   }
+
+  addStopsLayer(map)
 
   const bands = buildBandFilters(frequencies)
   const color = lineColor(frequencies, day, window, thresholds)
