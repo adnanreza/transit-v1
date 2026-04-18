@@ -48,6 +48,8 @@ The basemap extract is gitignored (30 MB, regenerated per deploy). GTFS-derived 
 
 Auto-deployed to [Netlify](https://www.netlify.com/) on push to `main` — production at [yvrtransit.netlify.app](https://yvrtransit.netlify.app/). PR previews build at `deploy-preview-<n>--yvrtransit.netlify.app` for every open pull request.
 
+Data refreshes via a weekly GitHub Action ([`.github/workflows/refresh-data.yml`](.github/workflows/refresh-data.yml)) that regenerates the GTFS outputs every Monday morning UTC and opens a PR whenever the upstream feed has changed. Merged auto-PRs flow through the normal Netlify deploy.
+
 Netlify build config:
 - **Command:** `npm run prepare-basemap && npm run build` (extracts fresh basemap, then Vite builds)
 - **Publish:** `dist`
