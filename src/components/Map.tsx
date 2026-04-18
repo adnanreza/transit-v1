@@ -12,6 +12,7 @@ import {
   DEFAULT_OPACITY,
 } from '@/lib/band-palette'
 import { modeFilterExpression, type Mode } from '@/lib/modes'
+import type { BandThresholds } from '@/lib/route-band'
 import type {
   DayType,
   FrequenciesFile,
@@ -48,11 +49,12 @@ function lineColor(
   frequencies: FrequenciesFile,
   day: DayType,
   window: TimeWindow,
+  thresholds: BandThresholds,
 ): ExpressionSpecification {
   return [
     'case',
     isBus,
-    busColorExpression(frequencies, day, window),
+    busColorExpression(frequencies, day, window, thresholds),
     rapidTransitColor,
   ]
 }
@@ -61,11 +63,12 @@ function lineOpacity(
   frequencies: FrequenciesFile,
   day: DayType,
   window: TimeWindow,
+  thresholds: BandThresholds,
 ): ExpressionSpecification {
   return [
     'case',
     isBus,
-    busOpacityExpression(frequencies, day, window),
+    busOpacityExpression(frequencies, day, window, thresholds),
     DEFAULT_OPACITY,
   ]
 }
@@ -107,6 +110,7 @@ function addRouteLayers(
   day: DayType,
   window: TimeWindow,
   enabledModes: ReadonlySet<Mode>,
+  thresholds: BandThresholds,
 ) {
   if (map.getLayer('routes-lines-solid')) return
 
@@ -115,8 +119,8 @@ function addRouteLayers(
   }
 
   const bands = buildBandFilters(frequencies)
-  const color = lineColor(frequencies, day, window)
-  const opacity = lineOpacity(frequencies, day, window)
+  const color = lineColor(frequencies, day, window, thresholds)
+  const opacity = lineOpacity(frequencies, day, window, thresholds)
 
   // Dashed (peak-only / night-only) paints below so rapid transit and regular
   // buses overlay at geometry crossings.
@@ -171,10 +175,11 @@ function repaintBands(
   frequencies: FrequenciesFile,
   day: DayType,
   window: TimeWindow,
+  thresholds: BandThresholds,
 ) {
   if (!map.getLayer('routes-lines-solid')) return
-  const color = lineColor(frequencies, day, window)
-  const opacity = lineOpacity(frequencies, day, window)
+  const color = lineColor(frequencies, day, window, thresholds)
+  const opacity = lineOpacity(frequencies, day, window, thresholds)
   for (const id of ROUTE_LAYER_IDS) {
     map.setPaintProperty(id, 'line-color', color)
     map.setPaintProperty(id, 'line-opacity', opacity)
@@ -185,9 +190,10 @@ interface Props {
   day: DayType
   window: TimeWindow
   enabledModes: ReadonlySet<Mode>
+  thresholds: BandThresholds
 }
 
-export function Map({ day, window, enabledModes }: Props) {
+export function Map({ day, window, enabledModes, thresholds }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const frequencies = useFrequencies()
@@ -221,22 +227,23 @@ export function Map({ day, window, enabledModes }: Props) {
     if (!map || frequencies.status !== 'ready') return
 
     const apply = () =>
-      addRouteLayers(map, frequencies.data, day, window, enabledModes)
+      addRouteLayers(map, frequencies.data, day, window, enabledModes, thresholds)
     if (map.isStyleLoaded()) {
       apply()
     } else {
       map.once('load', apply)
     }
-    // day/window/enabledModes intentionally omitted — this effect seeds the
-    // initial state; live updates come from the repaint/filter effects.
+    // day/window/enabledModes/thresholds intentionally omitted — this effect
+    // seeds the initial state; live updates come from the repaint/filter
+    // effects below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [frequencies])
 
   useEffect(() => {
     const map = mapRef.current
     if (!map || frequencies.status !== 'ready') return
-    repaintBands(map, frequencies.data, day, window)
-  }, [frequencies, day, window])
+    repaintBands(map, frequencies.data, day, window, thresholds)
+  }, [frequencies, day, window, thresholds])
 
   useEffect(() => {
     const map = mapRef.current
