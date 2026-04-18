@@ -3,6 +3,7 @@ import { FrequencyControls } from '@/components/FrequencyControls'
 import { Legend } from '@/components/Legend'
 import { ModeFilter } from '@/components/ModeFilter'
 import { RouteSearch } from '@/components/RouteSearch'
+import { ThemeToggle } from '@/components/ThemeToggle'
 import { ThresholdSlider } from '@/components/ThresholdSlider'
 import { useFrequencies } from '@/lib/frequencies'
 import {
@@ -10,6 +11,7 @@ import {
   useMapView,
   useModeFilter,
   useSelectedRoute,
+  useTheme,
   useThresholds,
   useTimeWindow,
   useUrlStateCleanup,
@@ -44,6 +46,7 @@ export default function App() {
   const [enabledModes, setEnabledModes] = useModeFilter()
   const [thresholds, setThresholds] = useThresholds()
   const [view, setView] = useMapView()
+  const [themePref, setThemePref] = useTheme()
   const [selectedRouteId, setSelectedRouteId] = useSelectedRoute()
   const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null)
   const routes = useRoutes()
@@ -141,6 +144,9 @@ export default function App() {
           onDayChange={setDay}
           onWindowChange={setWindow}
         />
+      </div>
+      <div className="pointer-events-none absolute top-3 right-3">
+        <ThemeToggle pref={themePref} onChange={setThemePref} />
       </div>
       <div className="pointer-events-none absolute bottom-12 right-3">
         <Legend thresholds={thresholds} />
