@@ -115,16 +115,16 @@ A Node script (`scripts/build-data.ts`) runs on `npm run prepare-data`:
 
 ### Deployment
 
-**Cloudflare Pages**, static site. Setup:
+**Netlify**, static site. Revisited from the original Cloudflare Pages + R2 plan — for a portfolio-scale project, Netlify wins on setup simplicity and cardlessness, and its 100 MB per-asset cap is generous enough to ship the bbox-extracted basemap inline (~30 MB) without a separate object store. Migrate to Cloudflare Pages + R2 if bandwidth ever approaches Netlify's 100 GB/mo free-tier cap.
 
-- Connect the GitHub repo in the Cloudflare dashboard; pushes to `main` deploy automatically, PRs get preview URLs.
-- Build command: `npm run build`
+- Connect the GitHub repo in the Netlify dashboard; pushes to `main` deploy automatically, PRs get `deploy-preview-<n>` URLs.
+- Build command: `npm run prepare-basemap && npm run build`
 - Build output directory: `dist` (Vite default)
-- Node version: pin to 20 via `.nvmrc` or the `NODE_VERSION` env var in Pages settings.
-- Data files in `public/data/` are served as static assets alongside the built JS/CSS.
-- PMTiles base map file: host on **Cloudflare R2** with public access and a custom domain. Metro Vancouver at z14 is 80–150MB — too large to bundle. R2 has no egress fees and serves HTTP range requests natively, which is exactly what PMTiles needs.
-- Custom domain: set up in Pages dashboard, Cloudflare handles the DNS and TLS automatically if the domain is on their nameservers.
-- Headers/redirects: use `public/_headers` and `public/_redirects` files (Netlify-style syntax, Cloudflare Pages supports them natively). Add long cache headers for `/data/*` since the data is content-hashed by the weekly cron.
+- Node version: `NODE_VERSION=20` (plus `.nvmrc` for local parity).
+- GTFS data files in `public/data/` are committed to the repo and served as static assets alongside the built JS/CSS.
+- PMTiles base map file: regenerated on every deploy via `scripts/prepare-basemap.sh`, which downloads a pinned `pmtiles` CLI (see `scripts/install-pmtiles-cli.sh`) and extracts a Metro Vancouver bbox from Protomaps' daily build. Gitignored so the repo stays lean; ~30 MB per deploy, PMTiles range requests keep per-visit transfer in the low MB.
+- Custom domain: configured in the Netlify dashboard when ready; not required for v1.
+- Headers: `public/_headers` applies long cache rules for `/data/*` and `/assets/*` so the CDN can hold those indefinitely. HTML gets Netlify's default revalidation so users pick up new deploys immediately.
 
 ## Styling
 
