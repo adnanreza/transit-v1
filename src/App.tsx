@@ -9,6 +9,7 @@ import {
   useDayType,
   useMapView,
   useModeFilter,
+  useSelectedRoute,
   useThresholds,
   useTimeWindow,
   useUrlStateCleanup,
@@ -21,6 +22,10 @@ import { useRoutes, type RouteIndexEntry } from '@/lib/use-routes'
 const Map = lazy(() =>
   import('@/components/Map').then((m) => ({ default: m.Map })),
 )
+
+// Lazy-load the panel + its chart so Recharts stays out of the initial bundle.
+// Only paid-for when the user clicks a route (or opens with ?route=…).
+const RouteDetailPanel = lazy(() => import('@/components/RouteDetailPanel'))
 
 export interface FocusRequest {
   route: RouteIndexEntry
@@ -39,6 +44,7 @@ export default function App() {
   const [enabledModes, setEnabledModes] = useModeFilter()
   const [thresholds, setThresholds] = useThresholds()
   const [view, setView] = useMapView()
+  const [selectedRouteId, setSelectedRouteId] = useSelectedRoute()
   const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null)
   const routes = useRoutes()
 
@@ -119,6 +125,15 @@ export default function App() {
       <div className="pointer-events-none absolute bottom-12 right-3">
         <Legend thresholds={thresholds} />
       </div>
+      <Suspense fallback={null}>
+        <RouteDetailPanel
+          routeId={selectedRouteId}
+          frequencies={
+            frequencies.status === 'ready' ? frequencies.data : null
+          }
+          onClose={() => setSelectedRouteId(null)}
+        />
+      </Suspense>
     </div>
   )
 }
