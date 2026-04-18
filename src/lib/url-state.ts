@@ -1,6 +1,5 @@
 import {
   createParser,
-  parseAsArrayOf,
   parseAsFloat,
   parseAsStringLiteral,
   useQueryState,
@@ -50,7 +49,25 @@ export function useTimeWindow() {
 // the param when the user lands back at the default.
 const MODES_SORTED_ALL = [...MODES].sort() as Mode[]
 
-const modeListParser = parseAsArrayOf(parseAsStringLiteral(MODES), ',')
+// parseAsArrayOf by itself returns [] for an all-invalid list, which would
+// leave the user with zero modes visible instead of the expected default. Wrap
+// it so empty and malformed lists both route through the default fallback.
+export const modeListParser = createParser<Mode[]>({
+  parse: (value) => {
+    const tokens = value.split(',')
+    const valid = tokens.filter((t): t is Mode =>
+      (MODES as readonly string[]).includes(t),
+    )
+    return valid.length === 0 ? null : valid
+  },
+  serialize: (modes) => [...modes].sort().join(','),
+  eq: (a, b) => {
+    if (a.length !== b.length) return false
+    const sortedA = [...a].sort()
+    const sortedB = [...b].sort()
+    return sortedA.every((v, i) => v === sortedB[i])
+  },
+})
   .withDefault(MODES_SORTED_ALL)
   .withOptions(DISCRETE_OPTIONS)
 
@@ -85,7 +102,7 @@ const CONTINUOUS_OPTIONS = {
   history: 'replace',
 } as const satisfies Options
 
-const thresholdsParser = createParser<BandThresholds>({
+export const thresholdsParser = createParser<BandThresholds>({
   parse: (value) => {
     const parts = value.split(',')
     if (parts.length !== 3) return null
@@ -132,7 +149,7 @@ export const VIEW_DRIFT_ZOOM = 0.01
 const round = (n: number, places: number) =>
   Math.round(n * 10 ** places) / 10 ** places
 
-const centerParser = createParser<[number, number]>({
+export const centerParser = createParser<[number, number]>({
   parse: (value) => {
     const parts = value.split(',').map(Number)
     if (parts.length !== 2) return null
