@@ -127,6 +127,22 @@ function composeFilter(
   return ['all', bandFilter, modeFilterExpression(enabledModes)] as unknown as FilterSpecification
 }
 
+// Radius grows with zoom so stops read as anchor points at street zoom
+// without dominating the view as soon as they become visible. Below z13 the
+// stops layer is hidden entirely — at network-overview zooms the colored
+// route lines tell the FTN story, and ~9k dots would just add noise.
+const stopCircleRadius: ExpressionSpecification = [
+  'interpolate',
+  ['linear'],
+  ['zoom'],
+  13,
+  1.5,
+  15,
+  2.5,
+  17,
+  4,
+]
+
 // Stops paint below routes so route-hover / route-click hit priority wins
 // when a cursor lands on a route that runs past a stop. Add this layer before
 // any of the route layers so the MapLibre z-order matches.
@@ -139,10 +155,11 @@ function addStopsLayer(map: maplibregl.Map) {
     id: STOPS_LAYER_ID,
     type: 'circle',
     source: 'stops',
+    minzoom: 13,
     paint: {
       'circle-color': '#d4d4d4',
       'circle-opacity': 0.85,
-      'circle-radius': 2,
+      'circle-radius': stopCircleRadius,
       'circle-stroke-color': '#0a0a0a',
       'circle-stroke-width': 1,
     },
