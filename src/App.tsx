@@ -151,6 +151,10 @@ export default function App() {
           frequencies={
             frequencies.status === 'ready' ? frequencies.data : null
           }
+          routes={routes.status === 'ready' ? routes.routes : null}
+          day={day}
+          window={window}
+          thresholds={thresholds}
           onClose={() => setSelectedRouteId(null)}
         />
       </Suspense>
