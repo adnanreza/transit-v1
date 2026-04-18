@@ -6,12 +6,16 @@ import type {
 } from '../../scripts/types/frequencies'
 import {
   BAND_COLORS,
+  BAND_COLORS_DARK,
+  BAND_COLORS_LIGHT,
+  bandColors,
   busColorExpression,
   busOpacityExpression,
   DEFAULT_OPACITY,
   NO_SERVICE_COLOR,
   NO_SERVICE_OPACITY,
 } from './band-palette'
+import type { Band } from '../../scripts/types/frequencies'
 
 function makePattern(
   trip_share: number,
@@ -154,5 +158,75 @@ describe('busOpacityExpression', () => {
 
     expect(expr[0]).toBe('literal')
     expect(expr[1]).toBe(NO_SERVICE_OPACITY)
+  })
+})
+
+describe('bandColors', () => {
+  const BANDS: Band[] = [
+    'very_frequent',
+    'frequent',
+    'standard',
+    'infrequent',
+    'peak_only',
+    'night_only',
+  ]
+
+  it('returns the dark palette when asked for dark', () => {
+    expect(bandColors('dark')).toEqual(BAND_COLORS_DARK)
+  })
+
+  it('returns the light palette when asked for light', () => {
+    expect(bandColors('light')).toEqual(BAND_COLORS_LIGHT)
+  })
+
+  it('keeps the legacy BAND_COLORS alias pointing at the dark palette', () => {
+    // Legend / panel / slider initially imported BAND_COLORS directly; the
+    // alias keeps those call sites working while new code uses bandColors(theme).
+    expect(BAND_COLORS).toBe(BAND_COLORS_DARK)
+  })
+
+  it('covers every canonical band in both palettes with a non-empty hex string', () => {
+    for (const band of BANDS) {
+      expect(BAND_COLORS_DARK[band]).toMatch(/^#[0-9a-f]{6}$/i)
+      expect(BAND_COLORS_LIGHT[band]).toMatch(/^#[0-9a-f]{6}$/i)
+    }
+  })
+
+  it('uses a different color for every band between themes (otherwise the inversion is a no-op)', () => {
+    // If a light-theme band reuses the dark-theme color, the readability pass
+    // that motivated the light palette would fail silently for that band.
+    for (const band of BANDS) {
+      expect(BAND_COLORS_LIGHT[band]).not.toBe(BAND_COLORS_DARK[band])
+    }
+  })
+})
+
+describe('busColorExpression respects theme', () => {
+  it('emits dark-palette colors by default (no theme arg)', () => {
+    const frequencies = makeFrequencies([
+      route('a', 'very_frequent', 8),
+      route('b', 'infrequent', 45),
+    ])
+    const expr = busColorExpression(frequencies, 'weekday', 'all_day') as unknown as string[]
+    expect(expr.flat()).toContain(BAND_COLORS_DARK.very_frequent)
+    expect(expr.flat()).toContain(BAND_COLORS_DARK.infrequent)
+  })
+
+  it('emits light-palette colors when theme is explicitly light', () => {
+    const frequencies = makeFrequencies([
+      route('a', 'very_frequent', 8),
+      route('b', 'infrequent', 45),
+    ])
+    const expr = busColorExpression(
+      frequencies,
+      'weekday',
+      'all_day',
+      undefined,
+      'light',
+    ) as unknown as string[]
+    expect(expr.flat()).toContain(BAND_COLORS_LIGHT.very_frequent)
+    expect(expr.flat()).toContain(BAND_COLORS_LIGHT.infrequent)
+    // And crucially NOT the dark ones — otherwise the user would see the wrong ramp
+    expect(expr.flat()).not.toContain(BAND_COLORS_DARK.very_frequent)
   })
 })
