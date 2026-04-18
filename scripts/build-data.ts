@@ -9,6 +9,7 @@ import {
   buildShapeToRouteMap,
   collectShapes,
   filterFixedRoutes,
+  parseAgencies,
   parseRoutes,
   parseStops,
   parseTrips,
@@ -146,14 +147,22 @@ const OSM_ATTRIBUTION = 'Map data © OpenStreetMap contributors'
 async function main() {
   const { path: zipPath, sha256: feedSha } = await downloadGtfs()
 
-  const [routesCsv, stopsCsv] = await Promise.all([
+  const [agencyCsv, routesCsv, stopsCsv] = await Promise.all([
+    readTextFromZip(zipPath, 'agency.txt'),
     readTextFromZip(zipPath, 'routes.txt'),
     readTextFromZip(zipPath, 'stops.txt'),
   ])
 
+  const agencies = parseAgencies(agencyCsv)
+  const agencyNameById = new Map(agencies.map((a) => [a.agency_id, a.agency_name]))
   const routes = filterFixedRoutes(parseRoutes(routesCsv))
   const stops = parseStops(stopsCsv)
+  const stopNameById = new Map(stops.map((s) => [s.stop_id, s.stop_name]))
+  const agencyNameByRouteId = new Map(
+    routes.map((r) => [r.route_id, agencyNameById.get(r.agency_id) ?? '']),
+  )
 
+  console.log(`Agencies: ${agencies.length}`)
   console.log(`Routes (fixed-route only): ${routes.length}`)
   console.log(`Stops: ${stops.length}`)
 
@@ -308,17 +317,25 @@ async function main() {
     const patterns: PatternFrequency[] = ps
       .slice()
       .sort((a, b) => b.trip_share - a.trip_share)
-      .map((p) => ({
-        pattern_id: p.summary.pattern_id,
-        shape_ids: [...p.summary.shape_ids].sort(),
-        representative_stop_id: p.summary.representative_stop_id,
-        trip_count: p.summary.trip_ids.length,
-        trip_share: Number(p.trip_share.toFixed(4)),
-        headways: p.headways,
-        hourly: p.hourly,
-      }))
+      .map((p) => {
+        const stopIds = p.summary.stop_ids
+        const firstStopId = stopIds[0] ?? ''
+        const lastStopId = stopIds[stopIds.length - 1] ?? ''
+        return {
+          pattern_id: p.summary.pattern_id,
+          shape_ids: [...p.summary.shape_ids].sort(),
+          representative_stop_id: p.summary.representative_stop_id,
+          first_stop_name: stopNameById.get(firstStopId) ?? '',
+          last_stop_name: stopNameById.get(lastStopId) ?? '',
+          trip_count: p.summary.trip_ids.length,
+          trip_share: Number(p.trip_share.toFixed(4)),
+          headways: p.headways,
+          hourly: p.hourly,
+        }
+      })
     const entry: RouteFrequency = {
       route_id: routeId,
+      agency_name: agencyNameByRouteId.get(routeId) ?? '',
       band: routeInfo.band,
       ftn_qualifies: routeInfo.ftn_qualifies,
       ftn_failure: routeInfo.ftn_failure,
