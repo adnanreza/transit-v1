@@ -29,4 +29,21 @@ describe('formatFtnFailure', () => {
   it('formats midnight as 12 AM', () => {
     expect(formatFtnFailure({ day_type: 'weekday', hour: 0 })).toMatch(/12 AM/)
   })
+
+  it('includes the actual headway number when one is provided', () => {
+    const text = formatFtnFailure({ day_type: 'weekday', hour: 6 }, 25)
+    expect(text).toMatch(/25 min/)
+    expect(text).toMatch(/Weekday/)
+    expect(text).toMatch(/6 AM/)
+  })
+
+  it('treats a null/undefined headway the same as omitting it', () => {
+    const withNull = formatFtnFailure({ day_type: 'weekday', hour: 6 }, null)
+    const plain = formatFtnFailure({ day_type: 'weekday', hour: 6 })
+    expect(withNull).toBe(plain)
+  })
+
+  it('ignores an extra headway argument when the route qualifies', () => {
+    expect(formatFtnFailure(null, 12)).toMatch(/every hour 06:00/)
+  })
 })

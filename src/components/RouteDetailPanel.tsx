@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Sheet,
   SheetContent,
@@ -11,6 +11,7 @@ import { BAND_COLORS } from '@/lib/band-palette'
 import { bandLabel } from '@/lib/band-label'
 import { formatFtnFailure } from '@/lib/ftn-format'
 import { routeBandAt, type BandThresholds } from '@/lib/route-band'
+import { hourlyChartSeries } from '@/lib/route-chart'
 import {
   countMinorPatterns,
   majorPatternsSorted,
@@ -75,6 +76,20 @@ export default function RouteDetailPanel({
       ? (routes.find((r) => r.route_id === displayedId) ?? null)
       : null
 
+  // modal={false} disables Radix's default autofocus, so a keyboard user who
+  // triggers a route with Enter has no obvious entry point into the panel.
+  // Focus the content explicitly when a route becomes selected; Esc → focus
+  // returns to body → next Tab lands on the next interactive element on the
+  // page (map is focusable via its own canvas role).
+  const contentRef = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    if (routeId === null) return
+    const el = contentRef.current
+    if (el && !el.contains(document.activeElement)) {
+      el.focus({ preventScroll: true })
+    }
+  }, [routeId])
+
   return (
     <Sheet
       open={routeId !== null}
@@ -84,6 +99,8 @@ export default function RouteDetailPanel({
       }}
     >
       <SheetContent
+        ref={contentRef}
+        tabIndex={-1}
         side="right"
         className="w-full gap-0 overflow-y-auto sm:max-w-md"
         aria-describedby="route-detail-description"
@@ -217,7 +234,12 @@ function FtnStatus({
         {qualifies
           ? formatFtnFailure(null)
           : (route.ftn_failure
-              ? formatFtnFailure(route.ftn_failure)
+              ? formatFtnFailure(
+                  route.ftn_failure,
+                  hourlyChartSeries(route, route.ftn_failure.day_type).find(
+                    (p) => p.hour === route.ftn_failure!.hour,
+                  )?.headway ?? null,
+                )
               : `Classified as ${fallbackBandLabel}.`)}
       </p>
     </section>
