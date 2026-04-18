@@ -2,9 +2,11 @@ import { lazy, Suspense, useState } from 'react'
 import { FrequencyControls } from '@/components/FrequencyControls'
 import { Legend } from '@/components/Legend'
 import { ModeFilter } from '@/components/ModeFilter'
+import { RouteSearch } from '@/components/RouteSearch'
 import { ThresholdSlider } from '@/components/ThresholdSlider'
 import { MODES, type Mode } from '@/lib/modes'
 import { DEFAULT_THRESHOLDS, type BandThresholds } from '@/lib/route-band'
+import { useRoutes, type RouteIndexEntry } from '@/lib/use-routes'
 import type { DayType, TimeWindow } from '../scripts/types/frequencies'
 
 // Code-split the map: maplibre-gl + pmtiles + protomaps-themes-base add up to
@@ -14,11 +16,18 @@ const Map = lazy(() =>
   import('@/components/Map').then((m) => ({ default: m.Map })),
 )
 
+export interface FocusRequest {
+  route: RouteIndexEntry
+  at: number
+}
+
 export default function App() {
   const [day, setDay] = useState<DayType>('weekday')
   const [window, setWindow] = useState<TimeWindow>('all_day')
   const [enabledModes, setEnabledModes] = useState<Set<Mode>>(() => new Set(MODES))
   const [thresholds, setThresholds] = useState<BandThresholds>(DEFAULT_THRESHOLDS)
+  const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null)
+  const routes = useRoutes()
 
   return (
     <div className="dark relative h-screen w-screen overflow-hidden bg-neutral-950 text-neutral-100">
@@ -28,6 +37,7 @@ export default function App() {
           window={window}
           enabledModes={enabledModes}
           thresholds={thresholds}
+          focusRequest={focusRequest}
         />
       </Suspense>
       <footer className="pointer-events-none absolute inset-x-0 top-0 p-3 text-xs">
@@ -73,6 +83,12 @@ export default function App() {
           </div>
         </div>
       </footer>
+      <div className="pointer-events-none absolute top-3 left-3">
+        <RouteSearch
+          routes={routes.status === 'ready' ? routes.routes : null}
+          onSelect={(route) => setFocusRequest({ route, at: Date.now() })}
+        />
+      </div>
       <div className="pointer-events-none absolute bottom-3 left-3 flex flex-col gap-2">
         <div className="pointer-events-auto flex w-72 flex-col gap-4 rounded-md bg-neutral-950/80 p-3 text-xs text-neutral-300 shadow-lg ring-1 ring-white/10 backdrop-blur">
           <ModeFilter enabled={enabledModes} onChange={setEnabledModes} />

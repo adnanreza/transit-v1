@@ -13,6 +13,7 @@ import {
 } from '@/lib/band-palette'
 import { modeFilterExpression, type Mode } from '@/lib/modes'
 import type { BandThresholds } from '@/lib/route-band'
+import type { FocusRequest } from '@/App'
 import type {
   DayType,
   FrequenciesFile,
@@ -191,9 +192,16 @@ interface Props {
   window: TimeWindow
   enabledModes: ReadonlySet<Mode>
   thresholds: BandThresholds
+  focusRequest: FocusRequest | null
 }
 
-export function Map({ day, window, enabledModes, thresholds }: Props) {
+export function Map({
+  day,
+  window,
+  enabledModes,
+  thresholds,
+  focusRequest,
+}: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const frequencies = useFrequencies()
@@ -250,6 +258,19 @@ export function Map({ day, window, enabledModes, thresholds }: Props) {
     if (!map || frequencies.status !== 'ready') return
     updateModeFilters(map, frequencies.data, enabledModes)
   }, [frequencies, enabledModes])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !focusRequest) return
+    const [w, s, e, n] = focusRequest.route.bbox
+    map.fitBounds(
+      [
+        [w, s],
+        [e, n],
+      ],
+      { padding: 80, duration: 600, maxZoom: 14 },
+    )
+  }, [focusRequest])
 
   return <div ref={containerRef} className="h-full w-full" />
 }
