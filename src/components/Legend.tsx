@@ -1,4 +1,4 @@
-import { BAND_COLORS, NO_SERVICE_COLOR } from '@/lib/band-palette'
+import { bandColors, NO_SERVICE_COLOR } from '@/lib/band-palette'
 import {
   DEFAULT_THRESHOLDS,
   type BandThresholds,
@@ -6,6 +6,7 @@ import {
 
 interface Props {
   thresholds: BandThresholds
+  theme: 'dark' | 'light'
 }
 
 interface Row {
@@ -15,27 +16,28 @@ interface Row {
   dimmed?: boolean
 }
 
-export function Legend({ thresholds }: Props) {
+export function Legend({ thresholds, theme }: Props) {
   const frequentMatchesFtn =
     thresholds.frequent === DEFAULT_THRESHOLDS.frequent
+  const palette = bandColors(theme)
 
   const rows: Row[] = [
-    { label: `\u2264 ${thresholds.very_frequent} min`, color: BAND_COLORS.very_frequent },
+    { label: `\u2264 ${thresholds.very_frequent} min`, color: palette.very_frequent },
     {
       label: frequentMatchesFtn
         ? `\u2264 ${thresholds.frequent} min (FTN)`
         : `\u2264 ${thresholds.frequent} min`,
-      color: BAND_COLORS.frequent,
+      color: palette.frequent,
     },
-    { label: `\u2264 ${thresholds.standard} min`, color: BAND_COLORS.standard },
-    { label: `> ${thresholds.standard} min`, color: BAND_COLORS.infrequent },
-    { label: 'Peak only', color: BAND_COLORS.peak_only, dashed: true },
-    { label: 'Night only', color: BAND_COLORS.night_only, dashed: true },
+    { label: `\u2264 ${thresholds.standard} min`, color: palette.standard },
+    { label: `> ${thresholds.standard} min`, color: palette.infrequent },
+    { label: 'Peak only', color: palette.peak_only, dashed: true },
+    { label: 'Night only', color: palette.night_only, dashed: true },
     { label: 'No service', color: NO_SERVICE_COLOR, dimmed: true },
   ]
 
   return (
-    <div className="pointer-events-auto flex flex-col gap-2 rounded-md bg-neutral-950/80 p-3 text-xs text-neutral-300 shadow-lg ring-1 ring-white/10 backdrop-blur">
+    <div className="pointer-events-auto flex flex-col gap-2 rounded-md bg-white/80 p-3 text-xs text-neutral-700 shadow-lg ring-1 ring-black/10 backdrop-blur dark:bg-neutral-950/80 dark:text-neutral-300 dark:ring-white/10">
       <h2 className="text-[11px] font-medium uppercase tracking-wider text-neutral-500">
         Frequency
       </h2>

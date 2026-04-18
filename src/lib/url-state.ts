@@ -6,7 +6,7 @@ import {
   useQueryState,
   type Options,
 } from 'nuqs'
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { MODES, type Mode } from './modes'
 import { DEFAULT_THRESHOLDS, type BandThresholds } from './route-band'
 import type { DayType, TimeWindow } from '../../scripts/types/frequencies'
@@ -144,6 +144,56 @@ export function useSelectedRoute() {
   return useQueryState('route', routeIdParser)
 }
 
+// Theme preference.
+// - `system` (default) follows the OS setting via prefers-color-scheme.
+// - `light` / `dark` are explicit overrides that round-trip through ?theme=.
+// The *preference* lives here; `useResolvedTheme` combines it with the media
+// query to produce the concrete theme a component should render with.
+export const THEME_PREFS = ['system', 'light', 'dark'] as const
+export type ThemePref = (typeof THEME_PREFS)[number]
+export type ResolvedTheme = 'light' | 'dark'
+
+export const themeParser = parseAsStringLiteral(THEME_PREFS)
+  .withDefault('system')
+  .withOptions(DISCRETE_OPTIONS)
+
+export function useTheme() {
+  return useQueryState('theme', themeParser)
+}
+
+/**
+ * Pure resolver. Keep this a free function so it's trivially testable and
+ * works the same way in SSR contexts where `window.matchMedia` is absent.
+ */
+export function resolveTheme(
+  pref: ThemePref,
+  systemIsDark: boolean,
+): ResolvedTheme {
+  if (pref === 'dark') return 'dark'
+  if (pref === 'light') return 'light'
+  return systemIsDark ? 'dark' : 'light'
+}
+
+/**
+ * React hook that subscribes to `prefers-color-scheme` and returns the
+ * concrete `dark | light` theme the UI should render. Re-renders when either
+ * the URL preference or the system setting changes.
+ */
+export function useResolvedTheme(): ResolvedTheme {
+  const [pref] = useTheme()
+  const [systemIsDark, setSystemIsDark] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true
+    return window.matchMedia('(prefers-color-scheme: dark)').matches
+  })
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    const handler = (e: MediaQueryListEvent) => setSystemIsDark(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+  return resolveTheme(pref, systemIsDark)
+}
+
 // Metro Vancouver default view, matched by the Map component at init.
 export const INITIAL_CENTER: [number, number] = [-123.05, 49.25]
 export const INITIAL_ZOOM = 10
@@ -219,6 +269,7 @@ export function useUrlStateCleanup(
       ['m', modeListParser],
       ['t', thresholdsParser],
       ['c', centerParser],
+      ['theme', themeParser],
     ]
     for (const [key, parser] of entries) {
       const value = url.searchParams.get(key)

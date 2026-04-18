@@ -7,7 +7,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { RouteFrequencyChart } from '@/components/RouteFrequencyChart'
-import { BAND_COLORS } from '@/lib/band-palette'
+import { bandColors } from '@/lib/band-palette'
 import { bandLabel } from '@/lib/band-label'
 import { formatFtnFailure } from '@/lib/ftn-format'
 import { routeBandAt, type BandThresholds } from '@/lib/route-band'
@@ -31,6 +31,7 @@ interface RouteDetailPanelProps {
   day: DayType
   window: TimeWindow
   thresholds: BandThresholds
+  theme: 'dark' | 'light'
   onClose: () => void
 }
 
@@ -44,12 +45,13 @@ function badgeColor(
   day: DayType,
   win: TimeWindow,
   thresholds: BandThresholds,
+  theme: 'dark' | 'light',
 ): string {
   if (entry.route_type !== BUS_ROUTE_TYPE && entry.route_color) {
     return `#${entry.route_color}`
   }
   const band = routeBandAt(route, day, win, thresholds) ?? route.band
-  return BAND_COLORS[band] ?? '#525252'
+  return bandColors(theme)[band] ?? '#525252'
 }
 
 export default function RouteDetailPanel({
@@ -59,6 +61,7 @@ export default function RouteDetailPanel({
   day,
   window,
   thresholds,
+  theme,
   onClose,
 }: RouteDetailPanelProps) {
   // Keep the last-known routeId around during the closing animation so the
@@ -110,7 +113,7 @@ export default function RouteDetailPanel({
         onPointerDownOutside={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
       >
-        <SheetHeader className="gap-2 border-b border-white/10 pb-4">
+        <SheetHeader className="gap-2 border-b border-black/10 pb-4 dark:border-white/10">
           {entry && route ? (
             <>
               <div className="flex items-start gap-3">
@@ -123,6 +126,7 @@ export default function RouteDetailPanel({
                       day,
                       window,
                       thresholds,
+                      theme,
                     ),
                   }}
                   aria-label={`Route ${entry.route_short_name}`}
@@ -133,7 +137,7 @@ export default function RouteDetailPanel({
                   <SheetTitle className="truncate text-base leading-tight">
                     {entry.route_long_name}
                   </SheetTitle>
-                  <p className="mt-0.5 text-xs text-neutral-400">
+                  <p className="mt-0.5 text-xs text-neutral-600 dark:text-neutral-400">
                     {route.agency_name || 'Transit operator'}
                   </p>
                 </div>
@@ -180,7 +184,7 @@ function Termini({ route }: { route: RouteFrequency }) {
       >
         {majors.length === 1 ? 'Terminus' : 'Termini'}
       </h3>
-      <ul className="flex flex-col gap-1 text-sm text-neutral-200">
+      <ul className="flex flex-col gap-1 text-sm text-neutral-800 dark:text-neutral-200">
         {majors.map((p) => (
           <li key={p.pattern_id} className="tabular-nums">
             <span>{p.first_stop_name || '—'}</span>
@@ -222,7 +226,7 @@ function FtnStatus({
         className={
           qualifies
             ? 'flex items-center gap-2 text-base font-medium text-emerald-400'
-            : 'flex items-center gap-2 text-base font-medium text-neutral-200'
+            : 'flex items-center gap-2 text-base font-medium text-neutral-800 dark:text-neutral-200'
         }
       >
         <span aria-hidden="true" className="text-lg leading-none">
@@ -230,7 +234,7 @@ function FtnStatus({
         </span>
         <span>{qualifies ? 'FTN-qualifying' : 'Not FTN-qualifying'}</span>
       </p>
-      <p className="text-xs text-neutral-400">
+      <p className="text-xs text-neutral-600 dark:text-neutral-400">
         {qualifies
           ? formatFtnFailure(null)
           : (route.ftn_failure

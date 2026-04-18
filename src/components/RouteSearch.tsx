@@ -45,11 +45,11 @@ export function RouteSearch({ routes, onSelect }: Props) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="pointer-events-auto flex items-center gap-2 rounded-md bg-neutral-950/80 px-3 py-2 text-xs text-neutral-300 shadow-lg ring-1 ring-white/10 backdrop-blur hover:text-neutral-100"
+        className="pointer-events-auto flex items-center gap-2 rounded-md bg-white/80 px-3 py-2 text-xs text-neutral-700 shadow-lg ring-1 ring-black/10 backdrop-blur hover:text-neutral-950 dark:bg-neutral-950/80 dark:text-neutral-300 dark:ring-white/10 dark:hover:text-neutral-100"
       >
         <SearchIcon aria-hidden="true" className="size-3.5" />
         <span>Search routes</span>
-        <kbd className="ml-2 rounded bg-neutral-800 px-1.5 py-0.5 text-[10px] text-neutral-400">
+        <kbd className="ml-2 rounded bg-neutral-200 px-1.5 py-0.5 text-[10px] text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400">
           /
         </kbd>
       </button>

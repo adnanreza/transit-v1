@@ -85,11 +85,12 @@ function lineColor(
   day: DayType,
   window: TimeWindow,
   thresholds: BandThresholds,
+  theme: 'dark' | 'light',
 ): ExpressionSpecification {
   return [
     'case',
     isBus,
-    busColorExpression(frequencies, day, window, thresholds),
+    busColorExpression(frequencies, day, window, thresholds, theme),
     rapidTransitColor,
   ]
 }
@@ -155,10 +156,27 @@ const stopCircleRadius: ExpressionSpecification = [
   4,
 ]
 
+// Stop-circle colors per theme. Dark-bg: muted off-white fill on a dark
+// hairline stroke. Light-bg: inverted — dark slate fill on a light hairline.
+// The inversion keeps the dot legible against whichever route color passes
+// near it at crossings (yellow, teal, etc.) on either background tone.
+const STOP_FILL: Record<'dark' | 'light', string> = {
+  dark: '#d4d4d4',
+  light: '#404040',
+}
+const STOP_STROKE: Record<'dark' | 'light', string> = {
+  dark: '#0a0a0a',
+  light: '#f5f5f5',
+}
+const SELECTED_HIGHLIGHT: Record<'dark' | 'light', string> = {
+  dark: '#ffffff',
+  light: '#0a0a0a',
+}
+
 // Stops paint below routes so route-hover / route-click hit priority wins
 // when a cursor lands on a route that runs past a stop. Add this layer before
 // any of the route layers so the MapLibre z-order matches.
-function addStopsLayer(map: maplibregl.Map) {
+function addStopsLayer(map: maplibregl.Map, theme: 'dark' | 'light') {
   if (map.getLayer(STOPS_LAYER_ID)) return
   if (!map.getSource('stops')) {
     map.addSource('stops', { type: 'geojson', data: STOPS_URL })
@@ -169,10 +187,10 @@ function addStopsLayer(map: maplibregl.Map) {
     source: 'stops',
     minzoom: 13,
     paint: {
-      'circle-color': '#d4d4d4',
+      'circle-color': STOP_FILL[theme],
       'circle-opacity': 0.85,
       'circle-radius': stopCircleRadius,
-      'circle-stroke-color': '#0a0a0a',
+      'circle-stroke-color': STOP_STROKE[theme],
       'circle-stroke-width': 1,
     },
   })
@@ -185,6 +203,7 @@ function addRouteLayers(
   window: TimeWindow,
   enabledModes: ReadonlySet<Mode>,
   thresholds: BandThresholds,
+  theme: 'dark' | 'light',
 ) {
   if (map.getLayer('routes-lines-solid')) return
 
@@ -192,10 +211,10 @@ function addRouteLayers(
     map.addSource('routes', { type: 'geojson', data: ROUTES_URL })
   }
 
-  addStopsLayer(map)
+  addStopsLayer(map, theme)
 
   const bands = buildBandFilters(frequencies)
-  const color = lineColor(frequencies, day, window, thresholds)
+  const color = lineColor(frequencies, day, window, thresholds, theme)
   const opacity = lineOpacity(frequencies, day, window, thresholds)
 
   // Dashed (peak-only / night-only) paints below so rapid transit and regular
@@ -247,7 +266,7 @@ function addRouteLayers(
       'line-join': 'round',
     },
     paint: {
-      'line-color': '#ffffff',
+      'line-color': SELECTED_HIGHLIGHT[theme],
       'line-width': selectedLineWidth,
       'line-opacity': 0,
       'line-opacity-transition': { duration: HIGHLIGHT_FADE_MS, delay: 0 },
@@ -291,9 +310,10 @@ function repaintBands(
   day: DayType,
   window: TimeWindow,
   thresholds: BandThresholds,
+  theme: 'dark' | 'light',
 ) {
   if (!map.getLayer('routes-lines-solid')) return
-  const color = lineColor(frequencies, day, window, thresholds)
+  const color = lineColor(frequencies, day, window, thresholds, theme)
   const opacity = lineOpacity(frequencies, day, window, thresholds)
   for (const id of ROUTE_LAYER_IDS) {
     map.setPaintProperty(id, 'line-color', color)
@@ -309,6 +329,7 @@ interface Props {
   focusRequest: FocusRequest | null
   view: MapView
   selectedRouteId: string | null
+  theme: 'dark' | 'light'
   onViewChange: (view: MapView) => void
   onRouteSelect: (routeId: string) => void
   onBackgroundClick: () => void
@@ -330,6 +351,7 @@ export function Map({
   focusRequest,
   view,
   selectedRouteId,
+  theme,
   onViewChange,
   onRouteSelect,
   onBackgroundClick,
@@ -362,7 +384,7 @@ export function Map({
 
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: buildMapStyle(getPmtilesUrl()),
+      style: buildMapStyle(getPmtilesUrl(), theme),
       center: view.center,
       zoom: view.zoom,
     })
@@ -467,29 +489,52 @@ export function Map({
     if (!map || frequencies.status !== 'ready') return
 
     const apply = () =>
-      addRouteLayers(map, frequencies.data, day, window, enabledModes, thresholds)
+      addRouteLayers(map, frequencies.data, day, window, enabledModes, thresholds, theme)
     if (map.isStyleLoaded()) {
       apply()
     } else {
       map.once('load', apply)
     }
-    // day/window/enabledModes/thresholds intentionally omitted — this effect
-    // seeds the initial state; live updates come from the repaint/filter
-    // effects below.
+    // day/window/enabledModes/thresholds/theme intentionally omitted — this
+    // effect seeds the initial state; live updates come from the repaint /
+    // filter / theme-swap effects below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [frequencies])
 
   useEffect(() => {
     const map = mapRef.current
     if (!map || frequencies.status !== 'ready') return
-    repaintBands(map, frequencies.data, day, window, thresholds)
-  }, [frequencies, day, window, thresholds])
+    repaintBands(map, frequencies.data, day, window, thresholds, theme)
+  }, [frequencies, day, window, thresholds, theme])
 
   useEffect(() => {
     const map = mapRef.current
     if (!map || frequencies.status !== 'ready') return
     updateModeFilters(map, frequencies.data, enabledModes)
   }, [frequencies, enabledModes])
+
+  // Theme swap: regenerate the basemap style and re-add our route/stops/
+  // selected layers after it loads. `setStyle({ diff: true })` preserves the
+  // geojson sources (no re-fetch of routes/stops) but drops user-added layers,
+  // so we explicitly reinstall them on the `style.load` event. Skipped on
+  // initial mount — the map is already initialized with the current theme.
+  const prevThemeRef = useRef(theme)
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    if (prevThemeRef.current === theme) return
+    prevThemeRef.current = theme
+
+    map.setStyle(buildMapStyle(getPmtilesUrl(), theme), { diff: true })
+    map.once('style.load', () => {
+      if (frequencies.status !== 'ready') return
+      addRouteLayers(map, frequencies.data, day, window, enabledModes, thresholds, theme)
+    })
+    // day / window / enabledModes / thresholds intentionally omitted —
+    // repaint/filter effects below reconcile those independently after the
+    // style swap. Only theme transitions should trigger this effect.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [theme])
 
   // URL-driven view sync. When the view prop diverges materially from the
   // map's current camera (user navigated back/forward, pasted a permalink,

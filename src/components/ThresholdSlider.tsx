@@ -1,17 +1,19 @@
 import { Slider } from '@/components/ui/slider'
-import { BAND_COLORS } from '@/lib/band-palette'
+import { bandColors } from '@/lib/band-palette'
 import type { BandThresholds } from '@/lib/route-band'
 
 interface Props {
   thresholds: BandThresholds
+  theme: 'dark' | 'light'
   onChange: (next: BandThresholds) => void
 }
 
 const MIN = 1
 const MAX = 60
 
-export function ThresholdSlider({ thresholds, onChange }: Props) {
+export function ThresholdSlider({ thresholds, theme, onChange }: Props) {
   const values = [thresholds.very_frequent, thresholds.frequent, thresholds.standard]
+  const palette = bandColors(theme)
 
   return (
     <section className="flex flex-col gap-2">
@@ -37,9 +39,9 @@ export function ThresholdSlider({ thresholds, onChange }: Props) {
         aria-label="Frequency band thresholds"
       />
       <div className="grid grid-cols-3 gap-2 text-[11px]">
-        <Tick label="Very freq" value={thresholds.very_frequent} color={BAND_COLORS.very_frequent} />
-        <Tick label="Frequent" value={thresholds.frequent} color={BAND_COLORS.frequent} />
-        <Tick label="Standard" value={thresholds.standard} color={BAND_COLORS.standard} />
+        <Tick label="Very freq" value={thresholds.very_frequent} color={palette.very_frequent} />
+        <Tick label="Frequent" value={thresholds.frequent} color={palette.frequent} />
+        <Tick label="Standard" value={thresholds.standard} color={palette.standard} />
       </div>
     </section>
   )
@@ -61,8 +63,8 @@ function Tick({
         className="inline-block h-[3px] w-4 shrink-0 rounded-full"
         style={{ backgroundColor: color }}
       />
-      <span className="text-neutral-400">{label}</span>
-      <span className="ml-auto tabular-nums text-neutral-300">≤{value}</span>
+      <span className="text-neutral-600 dark:text-neutral-400">{label}</span>
+      <span className="ml-auto tabular-nums text-neutral-700 dark:text-neutral-300">≤{value}</span>
     </div>
   )
 }
