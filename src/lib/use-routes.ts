@@ -15,23 +15,23 @@ export type UseRoutesState =
 
 const ROUTES_URL = '/data/routes.geojson'
 
-interface RouteFeatureProps {
+export interface RouteFeatureProps {
   route_id: string
   route_short_name: string
   route_long_name: string
   route_type: string
 }
 
-interface LineFeature {
+export interface LineFeature {
   geometry: { type: 'LineString'; coordinates: [number, number][] }
   properties: RouteFeatureProps
 }
 
-interface RoutesGeoJSON {
+export interface RoutesGeoJSON {
   features: LineFeature[]
 }
 
-function buildIndex(geojson: RoutesGeoJSON): RouteIndexEntry[] {
+export function buildIndex(geojson: RoutesGeoJSON): RouteIndexEntry[] {
   const byId = new Map<
     string,
     { meta: RouteFeatureProps; bbox: [number, number, number, number] }
