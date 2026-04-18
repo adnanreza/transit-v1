@@ -592,8 +592,13 @@ export function Map({
   }
 
   return (
+    // MapLibre's own stylesheet applies `.maplibregl-map { position: relative }`
+    // with higher specificity than Tailwind utilities, which kills any
+    // `absolute inset-0` we try to hang on the container itself — the element
+    // collapses to height 0. Size the container via `h-full w-full` instead,
+    // and keep the tooltip as a positioned sibling inside this wrapper.
     <div className="relative h-full w-full">
-      <div ref={containerRef} className="absolute inset-0" />
+      <div ref={containerRef} className="h-full w-full" />
       {visibleHover && (
         <RouteTooltip
           x={visibleHover.x}
