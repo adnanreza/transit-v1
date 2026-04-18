@@ -6,6 +6,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
+import { RouteFrequencyChart } from '@/components/RouteFrequencyChart'
 import { BAND_COLORS } from '@/lib/band-palette'
 import { bandLabel } from '@/lib/band-label'
 import { formatFtnFailure } from '@/lib/ftn-format'
@@ -132,8 +133,9 @@ export default function RouteDetailPanel({
         </SheetHeader>
 
         {route && (
-          <div className="flex flex-col gap-4 p-4 text-sm">
+          <div className="flex flex-col gap-5 p-4 text-sm">
             <FtnStatus route={route} thresholds={thresholds} />
+            <RouteFrequencyChart route={route} />
           </div>
         )}
       </SheetContent>
