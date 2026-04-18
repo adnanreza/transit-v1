@@ -22,11 +22,11 @@ const INITIAL_CENTER: [number, number] = [-123.05, 49.25]
 const INITIAL_ZOOM = 10
 const ROUTES_URL = '/data/routes.geojson'
 const FALLBACK_ROUTE_COLOR = '#888888'
+const ROUTE_LAYER_IDS = ['routes-lines-solid', 'routes-lines-dashed'] as const
 
 // Rapid transit (SkyTrain / SeaBus / WCE) keeps its GTFS `route_color` because
 // those line colors are more recognizable to riders than a frequency band
-// (they're all frequent anyway). The color expression below applies only to
-// buses; the full paint uses a case on route_type to pick which one to use.
+// (they're all frequent anyway).
 const rapidTransitColor: ExpressionSpecification = [
   'case',
   ['==', ['get', 'route_color'], ''],
@@ -140,15 +140,30 @@ function addRouteLayers(
   })
 }
 
-export function Map() {
+function repaintBands(
+  map: maplibregl.Map,
+  frequencies: FrequenciesFile,
+  day: DayType,
+  window: TimeWindow,
+) {
+  if (!map.getLayer('routes-lines-solid')) return
+  const color = lineColor(frequencies, day, window)
+  const opacity = lineOpacity(frequencies, day, window)
+  for (const id of ROUTE_LAYER_IDS) {
+    map.setPaintProperty(id, 'line-color', color)
+    map.setPaintProperty(id, 'line-opacity', opacity)
+  }
+}
+
+interface Props {
+  day: DayType
+  window: TimeWindow
+}
+
+export function Map({ day, window }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const frequencies = useFrequencies()
-
-  // Day type + time window selection. Hard-coded defaults for now — goal 5
-  // wires this to user-facing toggles.
-  const day: DayType = 'weekday'
-  const window: TimeWindow = 'all_day'
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -171,6 +186,9 @@ export function Map() {
     }
   }, [])
 
+  // Add the route layers once per (map, frequencies) — not on every control
+  // change. Subsequent day/window tweaks update paint properties in the
+  // companion effect below without re-registering sources or layers.
   useEffect(() => {
     const map = mapRef.current
     if (!map || frequencies.status !== 'ready') return
@@ -181,6 +199,15 @@ export function Map() {
     } else {
       map.once('load', apply)
     }
+    // day/window intentionally omitted — this effect seeds the initial paint;
+    // live updates come from the repaint effect.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [frequencies])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || frequencies.status !== 'ready') return
+    repaintBands(map, frequencies.data, day, window)
   }, [frequencies, day, window])
 
   return <div ref={containerRef} className="h-full w-full" />

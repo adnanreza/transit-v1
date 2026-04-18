@@ -20,4 +20,13 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
+  {
+    // shadcn primitives co-locate components with their cva variants helper,
+    // which the react-refresh rule flags. We accept the pattern in this
+    // directory to keep shadcn component updates friction-free.
+    files: ['src/components/ui/**/*.{ts,tsx}'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
 ])
