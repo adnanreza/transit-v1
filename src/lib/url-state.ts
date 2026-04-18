@@ -5,7 +5,7 @@ import {
   useQueryState,
   type Options,
 } from 'nuqs'
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import { MODES, type Mode } from './modes'
 import { DEFAULT_THRESHOLDS, type BandThresholds } from './route-band'
 import type { DayType, TimeWindow } from '../../scripts/types/frequencies'
@@ -186,6 +186,43 @@ export function viewsDiffer(a: MapView, b: MapView): boolean {
     Math.abs(a.center[1] - b.center[1]) >= VIEW_DRIFT_LON_LAT ||
     Math.abs(a.zoom - b.zoom) >= VIEW_DRIFT_ZOOM
   )
+}
+
+/**
+ * Strip URL params that nuqs couldn't parse so the address bar matches what
+ * the user actually sees on the map. nuqs falls back to the default value
+ * silently when a parser returns null, but leaves the malformed key in place;
+ * a permalink like `?t=30,15,10` (non-monotonic) would otherwise persist in
+ * the bar even though the app ignores it. Runs once on mount.
+ *
+ * Valid params are never touched here — `clearOnDefault` handles stripping
+ * default values on subsequent setter calls.
+ */
+export function useUrlStateCleanup() {
+  useEffect(() => {
+    const url = new URL(window.location.href)
+    const removed: string[] = []
+    const entries: Array<[string, { parse: (s: string) => unknown }]> = [
+      ['d', dayTypeParser],
+      ['w', timeWindowParser],
+      ['m', modeListParser],
+      ['t', thresholdsParser],
+      ['c', centerParser],
+    ]
+    for (const [key, parser] of entries) {
+      const value = url.searchParams.get(key)
+      if (value === null) continue
+      if (parser.parse(value) !== null) continue
+      url.searchParams.delete(key)
+      removed.push(key)
+    }
+    if (removed.length > 0) {
+      console.warn(
+        `Ignoring malformed URL param${removed.length > 1 ? 's' : ''}: ${removed.join(', ')}`,
+      )
+      window.history.replaceState(window.history.state, '', url)
+    }
+  }, [])
 }
 
 export function useMapView(): [MapView, (next: MapView) => void] {

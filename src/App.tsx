@@ -10,6 +10,7 @@ import {
   useModeFilter,
   useThresholds,
   useTimeWindow,
+  useUrlStateCleanup,
 } from '@/lib/url-state'
 import { useRoutes, type RouteIndexEntry } from '@/lib/use-routes'
 
@@ -26,6 +27,7 @@ export interface FocusRequest {
 }
 
 export default function App() {
+  useUrlStateCleanup()
   const [day, setDay] = useDayType()
   const [window, setWindow] = useTimeWindow()
   const [enabledModes, setEnabledModes] = useModeFilter()
