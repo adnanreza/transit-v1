@@ -29,6 +29,17 @@ const STOPS_LAYER_ID = 'stops-circles'
 const FALLBACK_ROUTE_COLOR = '#888888'
 const ROUTE_LAYER_IDS = ['routes-lines-solid', 'routes-lines-dashed'] as const
 const SELECTED_LAYER_ID = 'routes-lines-selected'
+
+// Bottom-up z-order for the transit layers this component manages. Stops sit
+// under the route lines so route-hover hit priority wins near a stop; the
+// selected-route overlay sits on top so its pulse reads through everything.
+// Used as the source of truth for the dev-mode z-order assertion below.
+const TRANSIT_LAYER_STACK = [
+  STOPS_LAYER_ID,
+  'routes-lines-dashed',
+  'routes-lines-solid',
+  SELECTED_LAYER_ID,
+] as const
 const HIGHLIGHT_HOLD_MS = 1200
 const HIGHLIGHT_FADE_MS = 400
 const SELECTED_MATCHES_NONE: FilterSpecification = [
@@ -241,6 +252,30 @@ function addRouteLayers(
       'line-opacity-transition': { duration: HIGHLIGHT_FADE_MS, delay: 0 },
     },
   })
+
+  assertTransitLayerOrder(map)
+}
+
+// Dev-only tripwire: flags if someone later reorders the addLayer calls and
+// breaks the stops-below-routes-below-selected invariant that 09's
+// hit-priority promise depends on. Silent in production builds.
+function assertTransitLayerOrder(map: maplibregl.Map) {
+  if (!import.meta.env.DEV) return
+  const styleLayerIds = map.getStyle().layers.map((l) => l.id)
+  const actual = TRANSIT_LAYER_STACK.map((id) => styleLayerIds.indexOf(id))
+  const ordered = actual.every(
+    (idx, i) => idx >= 0 && (i === 0 || idx > actual[i - 1]),
+  )
+  if (!ordered) {
+    console.warn(
+      'Transit layer z-order out of spec. Expected bottom-up:',
+      TRANSIT_LAYER_STACK,
+      '; got:',
+      styleLayerIds.filter((id) =>
+        (TRANSIT_LAYER_STACK as readonly string[]).includes(id),
+      ),
+    )
+  }
 }
 
 function updateModeFilters(
