@@ -3,6 +3,8 @@ import {
   centerParser,
   dayTypeParser,
   modeListParser,
+  resolveTheme,
+  themeParser,
   thresholdsParser,
   timeWindowParser,
   viewsDiffer,
@@ -148,5 +150,36 @@ describe('centerParser', () => {
   it('rejects wrong arity or NaN tokens', () => {
     expect(centerParser.parse('-123.05')).toBeNull()
     expect(centerParser.parse('-123,abc')).toBeNull()
+  })
+})
+
+describe('themeParser', () => {
+  it('accepts the three canonical values', () => {
+    expect(themeParser.parse('system')).toBe('system')
+    expect(themeParser.parse('light')).toBe('light')
+    expect(themeParser.parse('dark')).toBe('dark')
+  })
+
+  it('rejects anything else with null', () => {
+    expect(themeParser.parse('auto')).toBeNull()
+    expect(themeParser.parse('Dark')).toBeNull()
+    expect(themeParser.parse('')).toBeNull()
+  })
+})
+
+describe('resolveTheme', () => {
+  it('passes `dark` through regardless of system preference', () => {
+    expect(resolveTheme('dark', true)).toBe('dark')
+    expect(resolveTheme('dark', false)).toBe('dark')
+  })
+
+  it('passes `light` through regardless of system preference', () => {
+    expect(resolveTheme('light', true)).toBe('light')
+    expect(resolveTheme('light', false)).toBe('light')
+  })
+
+  it('follows the system preference when pref is `system`', () => {
+    expect(resolveTheme('system', true)).toBe('dark')
+    expect(resolveTheme('system', false)).toBe('light')
   })
 })
