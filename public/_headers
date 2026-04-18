@@ -1,0 +1,10 @@
+# Netlify-style header rules. Long-cache everything that's content-hashed or
+# regenerated via a new deploy (basemap is rebuilt on every deploy; GTFS data
+# files change only via a committed PR). The root HTML is left on Netlify's
+# default revalidating policy so users pick up new deploys immediately.
+
+/data/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable

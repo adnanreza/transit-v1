@@ -13,6 +13,10 @@
 
 set -euo pipefail
 
+# Pick up the CI-downloaded pmtiles binary (see install-pmtiles-cli.sh) if a
+# system-level one isn't already on PATH.
+export PATH="./bin:$PATH"
+
 BBOX="-123.5,48.95,-122.2,49.55"
 MAXZOOM=14
 OUTPUT="public/data/basemap.pmtiles"

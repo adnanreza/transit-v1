@@ -11,7 +11,7 @@
     "test": "vitest run",
     "preview": "vite preview",
     "prepare-data": "tsx scripts/build-data.ts",
-    "prepare-basemap": "scripts/prepare-basemap.sh"
+    "prepare-basemap": "scripts/install-pmtiles-cli.sh && scripts/prepare-basemap.sh"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.2.8",
