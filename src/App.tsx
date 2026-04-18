@@ -4,10 +4,15 @@ import { Legend } from '@/components/Legend'
 import { ModeFilter } from '@/components/ModeFilter'
 import { RouteSearch } from '@/components/RouteSearch'
 import { ThresholdSlider } from '@/components/ThresholdSlider'
-import { MODES, type Mode } from '@/lib/modes'
-import { DEFAULT_THRESHOLDS, type BandThresholds } from '@/lib/route-band'
+import {
+  useDayType,
+  useMapView,
+  useModeFilter,
+  useThresholds,
+  useTimeWindow,
+  useUrlStateCleanup,
+} from '@/lib/url-state'
 import { useRoutes, type RouteIndexEntry } from '@/lib/use-routes'
-import type { DayType, TimeWindow } from '../scripts/types/frequencies'
 
 // Code-split the map: maplibre-gl + pmtiles + protomaps-themes-base add up to
 // ~300 KB gz on their own, which blows SPEC's 300 KB initial-JS budget. Load
@@ -22,10 +27,12 @@ export interface FocusRequest {
 }
 
 export default function App() {
-  const [day, setDay] = useState<DayType>('weekday')
-  const [window, setWindow] = useState<TimeWindow>('all_day')
-  const [enabledModes, setEnabledModes] = useState<Set<Mode>>(() => new Set(MODES))
-  const [thresholds, setThresholds] = useState<BandThresholds>(DEFAULT_THRESHOLDS)
+  useUrlStateCleanup()
+  const [day, setDay] = useDayType()
+  const [window, setWindow] = useTimeWindow()
+  const [enabledModes, setEnabledModes] = useModeFilter()
+  const [thresholds, setThresholds] = useThresholds()
+  const [view, setView] = useMapView()
   const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null)
   const routes = useRoutes()
 
@@ -38,6 +45,8 @@ export default function App() {
           enabledModes={enabledModes}
           thresholds={thresholds}
           focusRequest={focusRequest}
+          view={view}
+          onViewChange={setView}
         />
       </Suspense>
       <footer className="pointer-events-none absolute inset-x-0 top-0 p-3 text-xs">
