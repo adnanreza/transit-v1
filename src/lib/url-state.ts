@@ -1,6 +1,7 @@
 import {
   createParser,
   parseAsArrayOf,
+  parseAsFloat,
   parseAsStringLiteral,
   useQueryState,
   type Options,
@@ -115,4 +116,59 @@ const thresholdsParser = createParser<BandThresholds>({
 
 export function useThresholds() {
   return useQueryState('t', thresholdsParser)
+}
+
+// Metro Vancouver default view, matched by the Map component at init.
+export const INITIAL_CENTER: [number, number] = [-123.05, 49.25]
+export const INITIAL_ZOOM = 10
+
+// Drift thresholds for the loop-prevention check when URL-driven view values
+// arrive at the Map. Roughly ~11 m in lat/lon and ~1% of a zoom level — small
+// enough that programmatic round-trips (easeTo → moveend → setUrl → easeTo)
+// terminate on the first pass.
+export const VIEW_DRIFT_LON_LAT = 0.0001
+export const VIEW_DRIFT_ZOOM = 0.01
+
+const round = (n: number, places: number) =>
+  Math.round(n * 10 ** places) / 10 ** places
+
+const centerParser = createParser<[number, number]>({
+  parse: (value) => {
+    const parts = value.split(',').map(Number)
+    if (parts.length !== 2) return null
+    const [lon, lat] = parts
+    if (!Number.isFinite(lon) || !Number.isFinite(lat)) return null
+    if (lon < -180 || lon > 180 || lat < -90 || lat > 90) return null
+    return [lon, lat]
+  },
+  serialize: ([lon, lat]) => `${round(lon, 4)},${round(lat, 4)}`,
+  eq: (a, b) => a[0] === b[0] && a[1] === b[1],
+})
+  .withDefault(INITIAL_CENTER)
+  .withOptions(CONTINUOUS_OPTIONS)
+
+const zoomParser = parseAsFloat
+  .withDefault(INITIAL_ZOOM)
+  .withOptions(CONTINUOUS_OPTIONS)
+
+export interface MapView {
+  center: [number, number]
+  zoom: number
+}
+
+export function useMapView(): [MapView, (next: MapView) => void] {
+  const [center, setCenter] = useQueryState('c', centerParser)
+  const [zoom, setZoom] = useQueryState('z', zoomParser)
+
+  const view = useMemo<MapView>(() => ({ center, zoom }), [center, zoom])
+
+  const setView = useCallback(
+    (next: MapView) => {
+      setCenter([round(next.center[0], 4), round(next.center[1], 4)])
+      setZoom(round(next.zoom, 2))
+    },
+    [setCenter, setZoom],
+  )
+
+  return [view, setView]
 }

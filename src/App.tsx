@@ -6,6 +6,7 @@ import { RouteSearch } from '@/components/RouteSearch'
 import { ThresholdSlider } from '@/components/ThresholdSlider'
 import {
   useDayType,
+  useMapView,
   useModeFilter,
   useThresholds,
   useTimeWindow,
@@ -29,6 +30,7 @@ export default function App() {
   const [window, setWindow] = useTimeWindow()
   const [enabledModes, setEnabledModes] = useModeFilter()
   const [thresholds, setThresholds] = useThresholds()
+  const [view, setView] = useMapView()
   const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null)
   const routes = useRoutes()
 
@@ -41,6 +43,8 @@ export default function App() {
           enabledModes={enabledModes}
           thresholds={thresholds}
           focusRequest={focusRequest}
+          view={view}
+          onViewChange={setView}
         />
       </Suspense>
       <footer className="pointer-events-none absolute inset-x-0 top-0 p-3 text-xs">

@@ -13,6 +13,11 @@ import {
 } from '@/lib/band-palette'
 import { modeFilterExpression, type Mode } from '@/lib/modes'
 import type { BandThresholds } from '@/lib/route-band'
+import {
+  VIEW_DRIFT_LON_LAT,
+  VIEW_DRIFT_ZOOM,
+  type MapView,
+} from '@/lib/url-state'
 import type { FocusRequest } from '@/App'
 import type {
   DayType,
@@ -20,9 +25,6 @@ import type {
   TimeWindow,
 } from '../../scripts/types/frequencies'
 import 'maplibre-gl/dist/maplibre-gl.css'
-
-const INITIAL_CENTER: [number, number] = [-123.05, 49.25]
-const INITIAL_ZOOM = 10
 const ROUTES_URL = '/data/routes.geojson'
 const FALLBACK_ROUTE_COLOR = '#888888'
 const ROUTE_LAYER_IDS = ['routes-lines-solid', 'routes-lines-dashed'] as const
@@ -233,6 +235,8 @@ interface Props {
   enabledModes: ReadonlySet<Mode>
   thresholds: BandThresholds
   focusRequest: FocusRequest | null
+  view: MapView
+  onViewChange: (view: MapView) => void
 }
 
 export function Map({
@@ -241,10 +245,21 @@ export function Map({
   enabledModes,
   thresholds,
   focusRequest,
+  view,
+  onViewChange,
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const frequencies = useFrequencies()
+
+  // Stash the latest writer + the last view we applied so the `moveend`
+  // handler (registered once at init) always sees the current React values
+  // without re-registering on every prop change.
+  const onViewChangeRef = useRef(onViewChange)
+  const lastAppliedViewRef = useRef(view)
+  useEffect(() => {
+    onViewChangeRef.current = onViewChange
+  })
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -255,16 +270,31 @@ export function Map({
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: buildMapStyle(getPmtilesUrl()),
-      center: INITIAL_CENTER,
-      zoom: INITIAL_ZOOM,
+      center: view.center,
+      zoom: view.zoom,
     })
     mapRef.current = map
 
+    const handleMoveEnd = () => {
+      const c = map.getCenter()
+      const next: MapView = {
+        center: [c.lng, c.lat],
+        zoom: map.getZoom(),
+      }
+      lastAppliedViewRef.current = next
+      onViewChangeRef.current(next)
+    }
+    map.on('moveend', handleMoveEnd)
+
     return () => {
+      map.off('moveend', handleMoveEnd)
       map.remove()
       maplibregl.removeProtocol('pmtiles')
       mapRef.current = null
     }
+    // View intentionally read only for the initial camera — subsequent
+    // updates flow through the sync effect below, not a re-init.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Add the route layers once per (map, frequencies) — not on every control
@@ -298,6 +328,28 @@ export function Map({
     if (!map || frequencies.status !== 'ready') return
     updateModeFilters(map, frequencies.data, enabledModes)
   }, [frequencies, enabledModes])
+
+  // URL-driven view sync. When the view prop diverges materially from the
+  // map's current camera (user navigated back/forward, pasted a permalink,
+  // etc.), ease to it. The drift threshold plus the lastAppliedView ref
+  // together prevent the moveend → setUrl → prop → ease feedback loop.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    const last = lastAppliedViewRef.current
+    const lonDrift = Math.abs(view.center[0] - last.center[0])
+    const latDrift = Math.abs(view.center[1] - last.center[1])
+    const zoomDrift = Math.abs(view.zoom - last.zoom)
+    if (
+      lonDrift < VIEW_DRIFT_LON_LAT &&
+      latDrift < VIEW_DRIFT_LON_LAT &&
+      zoomDrift < VIEW_DRIFT_ZOOM
+    ) {
+      return
+    }
+    lastAppliedViewRef.current = view
+    map.easeTo({ center: view.center, zoom: view.zoom, duration: 600 })
+  }, [view])
 
   useEffect(() => {
     const map = mapRef.current
