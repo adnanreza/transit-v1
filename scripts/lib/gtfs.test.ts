@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   buildShapeToRouteMap,
   filterFixedRoutes,
+  parseAgencies,
   parseRoutes,
   parseStops,
   parseTrips,
@@ -9,6 +10,34 @@ import {
   type RouteRecord,
   type ShapePoint,
 } from './gtfs.ts'
+
+describe('parseAgencies', () => {
+  it('parses agency.txt into records keyed by header name', () => {
+    const csv =
+      'agency_id,agency_name,agency_url,agency_timezone,agency_lang\n' +
+      'TL,TransLink,https://translink.ca,America/Vancouver,en\n'
+    const agencies = parseAgencies(csv)
+    expect(agencies).toHaveLength(1)
+    expect(agencies[0]).toEqual({ agency_id: 'TL', agency_name: 'TransLink' })
+  })
+
+  it('defaults missing agency_id / agency_name to empty strings', () => {
+    // GTFS allows agency_id to be omitted in single-agency feeds; our
+    // pipeline should still produce an empty-string agency_id so Map lookups
+    // collapse the record to a predictable key.
+    const csv =
+      'agency_name,agency_url,agency_timezone\n' +
+      'TransLink,https://translink.ca,America/Vancouver\n'
+    const agencies = parseAgencies(csv)
+    expect(agencies[0].agency_id).toBe('')
+    expect(agencies[0].agency_name).toBe('TransLink')
+  })
+
+  it('returns an empty list for an agency.txt with only a header row', () => {
+    const csv = 'agency_id,agency_name\n'
+    expect(parseAgencies(csv)).toEqual([])
+  })
+})
 
 describe('parseRoutes', () => {
   it('parses a routes.txt CSV into RouteRecord[] keyed by header, not column order', () => {
