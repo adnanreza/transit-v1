@@ -233,6 +233,8 @@ interface Props {
   focusRequest: FocusRequest | null
   view: MapView
   onViewChange: (view: MapView) => void
+  onRouteSelect: (routeId: string) => void
+  onBackgroundClick: () => void
 }
 
 export function Map({
@@ -243,18 +245,24 @@ export function Map({
   focusRequest,
   view,
   onViewChange,
+  onRouteSelect,
+  onBackgroundClick,
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const frequencies = useFrequencies()
 
-  // Stash the latest writer + the last view we applied so the `moveend`
-  // handler (registered once at init) always sees the current React values
+  // Stash the latest writers + the last view we applied so the map-event
+  // handlers (registered once at init) always see the current React values
   // without re-registering on every prop change.
   const onViewChangeRef = useRef(onViewChange)
+  const onRouteSelectRef = useRef(onRouteSelect)
+  const onBackgroundClickRef = useRef(onBackgroundClick)
   const lastAppliedViewRef = useRef(view)
   useEffect(() => {
     onViewChangeRef.current = onViewChange
+    onRouteSelectRef.current = onRouteSelect
+    onBackgroundClickRef.current = onBackgroundClick
   })
 
   useEffect(() => {
@@ -282,8 +290,26 @@ export function Map({
     }
     map.on('moveend', handleMoveEnd)
 
+    // Single click handler: a hit on a rendered route layer selects that
+    // route; anything else (base map, stop, water) is treated as a background
+    // click so the panel can close. queryRenderedFeatures respects layer
+    // filters, so mode-hidden routes are already excluded.
+    const handleClick = (e: maplibregl.MapMouseEvent) => {
+      const features = map.queryRenderedFeatures(e.point, {
+        layers: [...ROUTE_LAYER_IDS],
+      })
+      const routeId = features[0]?.properties?.route_id
+      if (typeof routeId === 'string' && routeId.length > 0) {
+        onRouteSelectRef.current(routeId)
+      } else {
+        onBackgroundClickRef.current()
+      }
+    }
+    map.on('click', handleClick)
+
     return () => {
       map.off('moveend', handleMoveEnd)
+      map.off('click', handleClick)
       map.remove()
       maplibregl.removeProtocol('pmtiles')
       mapRef.current = null

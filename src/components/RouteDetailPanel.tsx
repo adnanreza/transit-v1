@@ -33,6 +33,7 @@ export default function RouteDetailPanel({
   return (
     <Sheet
       open={routeId !== null}
+      modal={false}
       onOpenChange={(open) => {
         if (!open) onClose()
       }}
@@ -41,6 +42,11 @@ export default function RouteDetailPanel({
         side="right"
         className="w-full sm:max-w-md"
         aria-describedby="route-detail-description"
+        // Close is driven by the Map's background-click handler and by Esc /
+        // close button. Auto-closing on outside pointer events would double up
+        // with those paths, and also fire on route-to-route swaps.
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
       >
         <SheetHeader>
           <SheetTitle>

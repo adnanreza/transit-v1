@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { FrequencyControls } from '@/components/FrequencyControls'
 import { Legend } from '@/components/Legend'
 import { ModeFilter } from '@/components/ModeFilter'
@@ -48,6 +48,23 @@ export default function App() {
   const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null)
   const routes = useRoutes()
 
+  // Initial ?route=<id> → pan to bbox once routes load. Later clicks don't
+  // re-pan (they just open the panel), so this fires a single time. Routes
+  // load async, so this can't be a lazy useState initializer; a one-shot
+  // effect gated by a ref is the natural fit.
+  const deepLinkHandledRef = useRef(false)
+  useEffect(() => {
+    if (deepLinkHandledRef.current) return
+    if (routes.status !== 'ready') return
+    deepLinkHandledRef.current = true
+    if (!selectedRouteId) return
+    const entry = routes.routes.find((r) => r.route_id === selectedRouteId)
+    // Stable sentinel for `at`: the deep-link fires exactly once, and
+    // subsequent RouteSearch picks will produce distinct Date.now() values.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (entry) setFocusRequest({ route: entry, at: 0 })
+  }, [routes, selectedRouteId])
+
   return (
     <div className="dark relative h-screen w-screen overflow-hidden bg-neutral-950 text-neutral-100">
       <Suspense fallback={<div className="h-full w-full" />}>
@@ -59,6 +76,8 @@ export default function App() {
           focusRequest={focusRequest}
           view={view}
           onViewChange={setView}
+          onRouteSelect={setSelectedRouteId}
+          onBackgroundClick={() => setSelectedRouteId(null)}
         />
       </Suspense>
       <footer className="pointer-events-none absolute inset-x-0 top-0 p-3 text-xs">
