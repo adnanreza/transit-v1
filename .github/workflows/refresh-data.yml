@@ -43,7 +43,7 @@ jobs:
         run: npm ci
 
       - name: Capture pre-refresh snapshot
-        run: node scripts/refresh-summary.mjs --capture /tmp/refresh-before.json
+        run: npx tsx scripts/refresh-summary.ts --capture /tmp/refresh-before.json
 
       - name: Refresh GTFS data
         run: npm run prepare-data
@@ -51,7 +51,7 @@ jobs:
       - name: Build PR body and outputs
         id: summary
         run: |
-          node scripts/refresh-summary.mjs \
+          npx tsx scripts/refresh-summary.ts \
             --summary /tmp/refresh-before.json /tmp/refresh-body.md \
             >> "$GITHUB_OUTPUT"
 
