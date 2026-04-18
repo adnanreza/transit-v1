@@ -1,5 +1,6 @@
 import { lazy, Suspense, useState } from 'react'
 import { FrequencyControls } from '@/components/FrequencyControls'
+import { Legend } from '@/components/Legend'
 import type { DayType, TimeWindow } from '../scripts/types/frequencies'
 
 // Code-split the map: maplibre-gl + pmtiles + protomaps-themes-base add up to
@@ -68,6 +69,9 @@ export default function App() {
           onDayChange={setDay}
           onWindowChange={setWindow}
         />
+      </div>
+      <div className="pointer-events-none absolute bottom-12 right-3">
+        <Legend />
       </div>
     </div>
   )
