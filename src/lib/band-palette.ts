@@ -5,7 +5,11 @@ import type {
   TimeWindow,
 } from '../../scripts/types/frequencies'
 import type { ExpressionSpecification } from 'maplibre-gl'
-import { routeBandAt } from './route-band'
+import {
+  DEFAULT_THRESHOLDS,
+  routeBandAt,
+  type BandThresholds,
+} from './route-band'
 
 // Viridis-inspired ramp, ordered so the most frequent routes are the brightest
 // (yellow pops on the dark basemap). Verified in a colorblind simulator and
@@ -31,13 +35,17 @@ type BusBand = keyof typeof BAND_COLORS
  * Build a MapLibre `match` expression that maps a bus feature's route_id to
  * the color for its band at the current (day, window). Routes with no service
  * in the window fall through to NO_SERVICE_COLOR.
+ *
+ * `thresholds` defaults to SPEC values; the 06-controls slider feeds user-
+ * picked values so the ramp re-buckets live.
  */
 export function busColorExpression(
   frequencies: FrequenciesFile,
   day: DayType,
   window: TimeWindow,
+  thresholds: BandThresholds = DEFAULT_THRESHOLDS,
 ): ExpressionSpecification {
-  const byBand = groupRouteIdsByBand(frequencies, day, window)
+  const byBand = groupRouteIdsByBand(frequencies, day, window, thresholds)
   const branches: (string | string[])[] = []
   for (const band of Object.keys(BAND_COLORS) as BusBand[]) {
     const ids = byBand[band]
@@ -50,16 +58,20 @@ export function busColorExpression(
 /**
  * Companion to `busColorExpression`: routes with no service in the window get
  * knocked down in opacity so users see "this line exists" without the full
- * weight of an active route.
+ * weight of an active route. Thresholds shift which routes count as "served"
+ * only insofar as `routeBandAt` returns null for unserved routes — the
+ * parameter is passed through for symmetry with the color builder.
  */
 export function busOpacityExpression(
   frequencies: FrequenciesFile,
   day: DayType,
   window: TimeWindow,
+  thresholds: BandThresholds = DEFAULT_THRESHOLDS,
 ): ExpressionSpecification {
   const servedIds: string[] = []
   for (const route of Object.values(frequencies)) {
-    if (routeBandAt(route, day, window) !== null) servedIds.push(route.route_id)
+    if (routeBandAt(route, day, window, thresholds) !== null)
+      servedIds.push(route.route_id)
   }
   if (servedIds.length === 0) {
     return ['literal', NO_SERVICE_OPACITY] as unknown as ExpressionSpecification
@@ -71,6 +83,7 @@ function groupRouteIdsByBand(
   frequencies: FrequenciesFile,
   day: DayType,
   window: TimeWindow,
+  thresholds: BandThresholds,
 ): Record<BusBand, string[]> {
   const result: Record<BusBand, string[]> = {
     very_frequent: [],
@@ -81,7 +94,7 @@ function groupRouteIdsByBand(
     night_only: [],
   }
   for (const route of Object.values(frequencies)) {
-    const band = routeBandAt(route, day, window)
+    const band = routeBandAt(route, day, window, thresholds)
     if (band === null) continue
     result[band].push(route.route_id)
   }
