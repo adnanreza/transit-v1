@@ -12,6 +12,23 @@ export interface RouteRecord {
   agency_id: string
 }
 
+export interface AgencyRecord {
+  agency_id: string
+  agency_name: string
+}
+
+export function parseAgencies(csv: string): AgencyRecord[] {
+  const rows = parse(csv, {
+    columns: true,
+    skip_empty_lines: true,
+    bom: true,
+  }) as Record<string, string>[]
+  return rows.map((r) => ({
+    agency_id: r.agency_id ?? '',
+    agency_name: r.agency_name ?? '',
+  }))
+}
+
 export interface StopRecord {
   stop_id: string
   stop_name: string

@@ -21,6 +21,8 @@ function makePattern(
     pattern_id: 'p',
     shape_ids: [],
     representative_stop_id: 's',
+    first_stop_name: '',
+    last_stop_name: '',
     trip_count: 100,
     trip_share,
     headways: {
@@ -39,6 +41,7 @@ function route(
 ): RouteFrequency {
   return {
     route_id,
+    agency_name: 'TransLink',
     band,
     ftn_qualifies: false,
     ftn_failure: null,

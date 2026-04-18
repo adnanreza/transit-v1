@@ -14,6 +14,7 @@ function feature(
       route_short_name,
       route_long_name: `${route_short_name} long name`,
       route_type: '3',
+      route_color: '',
       ...extras,
     },
   }

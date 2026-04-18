@@ -20,6 +20,8 @@ export interface PatternFrequency {
   pattern_id: string
   shape_ids: string[]
   representative_stop_id: string
+  first_stop_name: string
+  last_stop_name: string
   trip_count: number
   trip_share: number
   headways: Record<DayType, Record<TimeWindow, number | null>>
@@ -28,6 +30,7 @@ export interface PatternFrequency {
 
 export interface RouteFrequency {
   route_id: string
+  agency_name: string
   band: Band
   ftn_qualifies: boolean
   ftn_failure: { day_type: DayType; hour: number } | null

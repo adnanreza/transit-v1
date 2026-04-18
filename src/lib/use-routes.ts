@@ -5,6 +5,7 @@ export interface RouteIndexEntry {
   route_short_name: string
   route_long_name: string
   route_type: string
+  route_color: string
   bbox: [number, number, number, number]
 }
 
@@ -20,6 +21,7 @@ export interface RouteFeatureProps {
   route_short_name: string
   route_long_name: string
   route_type: string
+  route_color: string
 }
 
 export interface LineFeature {
@@ -61,6 +63,7 @@ export function buildIndex(geojson: RoutesGeoJSON): RouteIndexEntry[] {
       route_short_name: meta.route_short_name,
       route_long_name: meta.route_long_name,
       route_type: meta.route_type,
+      route_color: meta.route_color ?? '',
       bbox,
     })
   }
