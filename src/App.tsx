@@ -86,7 +86,7 @@ export default function App() {
         />
       </div>
       <div className="pointer-events-none absolute bottom-12 right-3">
-        <Legend />
+        <Legend thresholds={thresholds} />
       </div>
     </div>
   )
