@@ -12,6 +12,7 @@ import {
   DEFAULT_OPACITY,
 } from '@/lib/band-palette'
 import { bandLabel } from '@/lib/band-label'
+import { isTransitLayerOrderValid } from '@/lib/layer-stack'
 import { modeFilterExpression, type Mode } from '@/lib/modes'
 import { routeBandAt, type BandThresholds } from '@/lib/route-band'
 import { viewsDiffer, type MapView } from '@/lib/url-state'
@@ -24,9 +25,22 @@ import type {
 } from '../../scripts/types/frequencies'
 import 'maplibre-gl/dist/maplibre-gl.css'
 const ROUTES_URL = '/data/routes.geojson'
+const STOPS_URL = '/data/stops.geojson'
+const STOPS_LAYER_ID = 'stops-circles'
 const FALLBACK_ROUTE_COLOR = '#888888'
 const ROUTE_LAYER_IDS = ['routes-lines-solid', 'routes-lines-dashed'] as const
 const SELECTED_LAYER_ID = 'routes-lines-selected'
+
+// Bottom-up z-order for the transit layers this component manages. Stops sit
+// under the route lines so route-hover hit priority wins near a stop; the
+// selected-route overlay sits on top so its pulse reads through everything.
+// Used as the source of truth for the dev-mode z-order assertion below.
+const TRANSIT_LAYER_STACK = [
+  STOPS_LAYER_ID,
+  'routes-lines-dashed',
+  'routes-lines-solid',
+  SELECTED_LAYER_ID,
+] as const
 const HIGHLIGHT_HOLD_MS = 1200
 const HIGHLIGHT_FADE_MS = 400
 const SELECTED_MATCHES_NONE: FilterSpecification = [
@@ -125,6 +139,45 @@ function composeFilter(
   return ['all', bandFilter, modeFilterExpression(enabledModes)] as unknown as FilterSpecification
 }
 
+// Radius grows with zoom so stops read as anchor points at street zoom
+// without dominating the view as soon as they become visible. Below z13 the
+// stops layer is hidden entirely — at network-overview zooms the colored
+// route lines tell the FTN story, and ~9k dots would just add noise.
+const stopCircleRadius: ExpressionSpecification = [
+  'interpolate',
+  ['linear'],
+  ['zoom'],
+  13,
+  1.5,
+  15,
+  2.5,
+  17,
+  4,
+]
+
+// Stops paint below routes so route-hover / route-click hit priority wins
+// when a cursor lands on a route that runs past a stop. Add this layer before
+// any of the route layers so the MapLibre z-order matches.
+function addStopsLayer(map: maplibregl.Map) {
+  if (map.getLayer(STOPS_LAYER_ID)) return
+  if (!map.getSource('stops')) {
+    map.addSource('stops', { type: 'geojson', data: STOPS_URL })
+  }
+  map.addLayer({
+    id: STOPS_LAYER_ID,
+    type: 'circle',
+    source: 'stops',
+    minzoom: 13,
+    paint: {
+      'circle-color': '#d4d4d4',
+      'circle-opacity': 0.85,
+      'circle-radius': stopCircleRadius,
+      'circle-stroke-color': '#0a0a0a',
+      'circle-stroke-width': 1,
+    },
+  })
+}
+
 function addRouteLayers(
   map: maplibregl.Map,
   frequencies: FrequenciesFile,
@@ -138,6 +191,8 @@ function addRouteLayers(
   if (!map.getSource('routes')) {
     map.addSource('routes', { type: 'geojson', data: ROUTES_URL })
   }
+
+  addStopsLayer(map)
 
   const bands = buildBandFilters(frequencies)
   const color = lineColor(frequencies, day, window, thresholds)
@@ -198,6 +253,25 @@ function addRouteLayers(
       'line-opacity-transition': { duration: HIGHLIGHT_FADE_MS, delay: 0 },
     },
   })
+
+  assertTransitLayerOrder(map)
+}
+
+// Dev-only tripwire: flags if someone later reorders the addLayer calls and
+// breaks the stops-below-routes-below-selected invariant that 09's
+// hit-priority promise depends on. Silent in production builds.
+function assertTransitLayerOrder(map: maplibregl.Map) {
+  if (!import.meta.env.DEV) return
+  const styleLayerIds = map.getStyle().layers.map((l) => l.id)
+  if (isTransitLayerOrderValid(styleLayerIds, TRANSIT_LAYER_STACK)) return
+  console.warn(
+    'Transit layer z-order out of spec. Expected bottom-up:',
+    TRANSIT_LAYER_STACK,
+    '; got:',
+    styleLayerIds.filter((id) =>
+      (TRANSIT_LAYER_STACK as readonly string[]).includes(id),
+    ),
+  )
 }
 
 function updateModeFilters(
