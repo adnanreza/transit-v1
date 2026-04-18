@@ -1,4 +1,7 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useState } from 'react'
+import { FrequencyControls } from '@/components/FrequencyControls'
+import { Legend } from '@/components/Legend'
+import type { DayType, TimeWindow } from '../scripts/types/frequencies'
 
 // Code-split the map: maplibre-gl + pmtiles + protomaps-themes-base add up to
 // ~300 KB gz on their own, which blows SPEC's 300 KB initial-JS budget. Load
@@ -8,10 +11,13 @@ const Map = lazy(() =>
 )
 
 export default function App() {
+  const [day, setDay] = useState<DayType>('weekday')
+  const [window, setWindow] = useState<TimeWindow>('all_day')
+
   return (
-    <div className="relative h-screen w-screen overflow-hidden bg-neutral-950 text-neutral-100">
+    <div className="dark relative h-screen w-screen overflow-hidden bg-neutral-950 text-neutral-100">
       <Suspense fallback={<div className="h-full w-full" />}>
-        <Map />
+        <Map day={day} window={window} />
       </Suspense>
       <footer className="pointer-events-none absolute inset-x-0 top-0 p-3 text-xs">
         <div className="pointer-events-auto mx-auto flex max-w-4xl flex-col gap-1 rounded-md bg-neutral-950/80 px-3 py-2 text-neutral-300 shadow-lg ring-1 ring-white/10 backdrop-blur sm:flex-row sm:items-center sm:justify-between">
@@ -56,6 +62,17 @@ export default function App() {
           </div>
         </div>
       </footer>
+      <div className="pointer-events-none absolute bottom-3 left-3 flex flex-col gap-2">
+        <FrequencyControls
+          day={day}
+          window={window}
+          onDayChange={setDay}
+          onWindowChange={setWindow}
+        />
+      </div>
+      <div className="pointer-events-none absolute bottom-12 right-3">
+        <Legend />
+      </div>
     </div>
   )
 }
