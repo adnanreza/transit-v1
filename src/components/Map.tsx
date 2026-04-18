@@ -12,6 +12,7 @@ import {
   DEFAULT_OPACITY,
 } from '@/lib/band-palette'
 import { bandLabel } from '@/lib/band-label'
+import { isTransitLayerOrderValid } from '@/lib/layer-stack'
 import { modeFilterExpression, type Mode } from '@/lib/modes'
 import { routeBandAt, type BandThresholds } from '@/lib/route-band'
 import { viewsDiffer, type MapView } from '@/lib/url-state'
@@ -262,20 +263,15 @@ function addRouteLayers(
 function assertTransitLayerOrder(map: maplibregl.Map) {
   if (!import.meta.env.DEV) return
   const styleLayerIds = map.getStyle().layers.map((l) => l.id)
-  const actual = TRANSIT_LAYER_STACK.map((id) => styleLayerIds.indexOf(id))
-  const ordered = actual.every(
-    (idx, i) => idx >= 0 && (i === 0 || idx > actual[i - 1]),
+  if (isTransitLayerOrderValid(styleLayerIds, TRANSIT_LAYER_STACK)) return
+  console.warn(
+    'Transit layer z-order out of spec. Expected bottom-up:',
+    TRANSIT_LAYER_STACK,
+    '; got:',
+    styleLayerIds.filter((id) =>
+      (TRANSIT_LAYER_STACK as readonly string[]).includes(id),
+    ),
   )
-  if (!ordered) {
-    console.warn(
-      'Transit layer z-order out of spec. Expected bottom-up:',
-      TRANSIT_LAYER_STACK,
-      '; got:',
-      styleLayerIds.filter((id) =>
-        (TRANSIT_LAYER_STACK as readonly string[]).includes(id),
-      ),
-    )
-  }
 }
 
 function updateModeFilters(
