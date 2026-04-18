@@ -75,6 +75,7 @@ export default function App() {
           thresholds={thresholds}
           focusRequest={focusRequest}
           view={view}
+          selectedRouteId={selectedRouteId}
           onViewChange={setView}
           onRouteSelect={setSelectedRouteId}
           onBackgroundClick={() => setSelectedRouteId(null)}

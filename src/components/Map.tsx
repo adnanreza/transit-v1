@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import maplibregl, {
   type ExpressionSpecification,
   type FilterSpecification,
@@ -11,9 +11,11 @@ import {
   busOpacityExpression,
   DEFAULT_OPACITY,
 } from '@/lib/band-palette'
+import { bandLabel } from '@/lib/band-label'
 import { modeFilterExpression, type Mode } from '@/lib/modes'
-import type { BandThresholds } from '@/lib/route-band'
+import { routeBandAt, type BandThresholds } from '@/lib/route-band'
 import { viewsDiffer, type MapView } from '@/lib/url-state'
+import { RouteTooltip } from '@/components/RouteTooltip'
 import type { FocusRequest } from '@/App'
 import type {
   DayType,
@@ -232,9 +234,18 @@ interface Props {
   thresholds: BandThresholds
   focusRequest: FocusRequest | null
   view: MapView
+  selectedRouteId: string | null
   onViewChange: (view: MapView) => void
   onRouteSelect: (routeId: string) => void
   onBackgroundClick: () => void
+}
+
+interface HoverState {
+  routeId: string
+  shortName: string
+  longName: string
+  x: number
+  y: number
 }
 
 export function Map({
@@ -244,6 +255,7 @@ export function Map({
   thresholds,
   focusRequest,
   view,
+  selectedRouteId,
   onViewChange,
   onRouteSelect,
   onBackgroundClick,
@@ -251,6 +263,7 @@ export function Map({
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const frequencies = useFrequencies()
+  const [hover, setHover] = useState<HoverState | null>(null)
 
   // Stash the latest writers + the last view we applied so the map-event
   // handlers (registered once at init) always see the current React values
@@ -258,11 +271,13 @@ export function Map({
   const onViewChangeRef = useRef(onViewChange)
   const onRouteSelectRef = useRef(onRouteSelect)
   const onBackgroundClickRef = useRef(onBackgroundClick)
+  const selectedRouteIdRef = useRef(selectedRouteId)
   const lastAppliedViewRef = useRef(view)
   useEffect(() => {
     onViewChangeRef.current = onViewChange
     onRouteSelectRef.current = onRouteSelect
     onBackgroundClickRef.current = onBackgroundClick
+    selectedRouteIdRef.current = selectedRouteId
   })
 
   useEffect(() => {
@@ -307,9 +322,60 @@ export function Map({
     }
     map.on('click', handleClick)
 
+    // Hover: only register on devices that actually support a hover cursor.
+    // Touch-only browsers still fire mousemove during pan gestures, which
+    // would light up the tooltip mid-swipe. (hover: hover) correctly rules
+    // those out while leaving desktop mice and trackpads in.
+    const supportsHover =
+      globalThis.matchMedia?.('(hover: hover)').matches ?? false
+
+    const handleMouseMove = (e: maplibregl.MapMouseEvent) => {
+      // Panel-open suppresses hover entirely — the highlight layer shows the
+      // selected route, and the user's attention is on the panel, not the map.
+      if (selectedRouteIdRef.current) return
+      const features = map.queryRenderedFeatures(e.point, {
+        layers: [...ROUTE_LAYER_IDS],
+      })
+      const top = features[0]
+      if (!top) {
+        setHover(null)
+        map.getCanvas().style.cursor = ''
+        return
+      }
+      const p = top.properties ?? {}
+      const routeId = typeof p.route_id === 'string' ? p.route_id : ''
+      if (!routeId) {
+        setHover(null)
+        map.getCanvas().style.cursor = ''
+        return
+      }
+      map.getCanvas().style.cursor = 'pointer'
+      setHover({
+        routeId,
+        shortName: typeof p.route_short_name === 'string' ? p.route_short_name : '',
+        longName: typeof p.route_long_name === 'string' ? p.route_long_name : '',
+        x: e.point.x,
+        y: e.point.y,
+      })
+    }
+
+    const handleMouseLeave = () => {
+      setHover(null)
+      map.getCanvas().style.cursor = ''
+    }
+
+    if (supportsHover) {
+      map.on('mousemove', handleMouseMove)
+      map.on('mouseout', handleMouseLeave)
+    }
+
     return () => {
       map.off('moveend', handleMoveEnd)
       map.off('click', handleClick)
+      if (supportsHover) {
+        map.off('mousemove', handleMouseMove)
+        map.off('mouseout', handleMouseLeave)
+      }
       map.remove()
       maplibregl.removeProtocol('pmtiles')
       mapRef.current = null
@@ -363,6 +429,44 @@ export function Map({
     map.easeTo({ center: view.center, zoom: view.zoom, duration: 600 })
   }, [view])
 
+  // Panel-open hides the hover tooltip + highlight per SPEC — the selection
+  // is the story while the sheet is visible. Derive during render rather than
+  // clearing hover state in an effect; any stale hover will be overwritten on
+  // the next mousemove once the panel closes.
+  const visibleHover = useMemo(
+    () => (selectedRouteId ? null : hover),
+    [selectedRouteId, hover],
+  )
+
+  // Imperatively reset the cursor when the panel opens with the mouse still
+  // over a route; a re-entry mousemove after close will reapply it.
+  useEffect(() => {
+    if (!selectedRouteId) return
+    const map = mapRef.current
+    if (map) map.getCanvas().style.cursor = ''
+  }, [selectedRouteId])
+
+  // visibleHover → sustained highlight on the existing routes-lines-selected
+  // layer. No fade timer; clears when the cursor leaves the route. Search-pulse
+  // and this effect both write the same paint props — if they collide, the
+  // last write wins, which is the behavior we want (user is currently
+  // interacting with whichever one moved more recently).
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !map.getLayer(SELECTED_LAYER_ID)) return
+    if (visibleHover) {
+      map.setFilter(SELECTED_LAYER_ID, [
+        '==',
+        ['get', 'route_id'],
+        visibleHover.routeId,
+      ])
+      map.setPaintProperty(SELECTED_LAYER_ID, 'line-opacity', 0.85)
+    } else {
+      map.setPaintProperty(SELECTED_LAYER_ID, 'line-opacity', 0)
+      map.setFilter(SELECTED_LAYER_ID, SELECTED_MATCHES_NONE)
+    }
+  }, [visibleHover])
+
   useEffect(() => {
     const map = mapRef.current
     if (!map || !focusRequest) return
@@ -402,5 +506,29 @@ export function Map({
     }
   }, [focusRequest])
 
-  return <div ref={containerRef} className="h-full w-full" />
+  // Tooltip content: band label reflects the current day/window/thresholds.
+  // `No service` if the route has no service in the selected window.
+  let tooltipBandLabel = 'No service'
+  if (visibleHover && frequencies.status === 'ready') {
+    const route = frequencies.data[visibleHover.routeId]
+    if (route) {
+      const band = routeBandAt(route, day, window, thresholds)
+      if (band) tooltipBandLabel = bandLabel(band, thresholds)
+    }
+  }
+
+  return (
+    <div className="relative h-full w-full">
+      <div ref={containerRef} className="absolute inset-0" />
+      {visibleHover && (
+        <RouteTooltip
+          x={visibleHover.x}
+          y={visibleHover.y}
+          shortName={visibleHover.shortName}
+          longName={visibleHover.longName}
+          bandLabel={tooltipBandLabel}
+        />
+      )}
+    </div>
+  )
 }
