@@ -83,6 +83,7 @@ export default function App() {
           focusRequest={focusRequest}
           view={view}
           selectedRouteId={selectedRouteId}
+          theme={resolvedTheme}
           onViewChange={setView}
           onRouteSelect={setSelectedRouteId}
           onBackgroundClick={() => setSelectedRouteId(null)}

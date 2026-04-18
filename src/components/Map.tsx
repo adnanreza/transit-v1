@@ -309,6 +309,7 @@ interface Props {
   focusRequest: FocusRequest | null
   view: MapView
   selectedRouteId: string | null
+  theme: 'dark' | 'light'
   onViewChange: (view: MapView) => void
   onRouteSelect: (routeId: string) => void
   onBackgroundClick: () => void
@@ -330,6 +331,7 @@ export function Map({
   focusRequest,
   view,
   selectedRouteId,
+  theme,
   onViewChange,
   onRouteSelect,
   onBackgroundClick,
@@ -362,7 +364,7 @@ export function Map({
 
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: buildMapStyle(getPmtilesUrl()),
+      style: buildMapStyle(getPmtilesUrl(), theme),
       center: view.center,
       zoom: view.zoom,
     })
@@ -490,6 +492,29 @@ export function Map({
     if (!map || frequencies.status !== 'ready') return
     updateModeFilters(map, frequencies.data, enabledModes)
   }, [frequencies, enabledModes])
+
+  // Theme swap: regenerate the basemap style and re-add our route/stops/
+  // selected layers after it loads. `setStyle({ diff: true })` preserves the
+  // geojson sources (no re-fetch of routes/stops) but drops user-added layers,
+  // so we explicitly reinstall them on the `style.load` event. Skipped on
+  // initial mount — the map is already initialized with the current theme.
+  const prevThemeRef = useRef(theme)
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    if (prevThemeRef.current === theme) return
+    prevThemeRef.current = theme
+
+    map.setStyle(buildMapStyle(getPmtilesUrl(), theme), { diff: true })
+    map.once('style.load', () => {
+      if (frequencies.status !== 'ready') return
+      addRouteLayers(map, frequencies.data, day, window, enabledModes, thresholds)
+    })
+    // day / window / enabledModes / thresholds intentionally omitted —
+    // repaint/filter effects below reconcile those independently after the
+    // style swap. Only theme transitions should trigger this effect.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [theme])
 
   // URL-driven view sync. When the view prop diverges materially from the
   // map's current camera (user navigated back/forward, pasted a permalink,

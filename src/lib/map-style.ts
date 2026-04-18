@@ -11,9 +11,14 @@ export function getPmtilesUrl(): string {
   return import.meta.env.VITE_PMTILES_URL || DEFAULT_PMTILES_URL
 }
 
-// Dark basemap style with all Protomaps default layers. Label fonts are
+// Basemap style built from Protomaps' default layer set. `theme` picks the
+// paint ramp — 'dark' keeps the original colored-routes-on-muted-slate look;
+// 'light' is used by the light-mode toggle (feature 12). Label fonts are
 // loaded from Protomaps' public glyph endpoint; they can be self-hosted later.
-export function buildMapStyle(pmtilesUrl: string): StyleSpecification {
+export function buildMapStyle(
+  pmtilesUrl: string,
+  theme: 'dark' | 'light' = 'dark',
+): StyleSpecification {
   return {
     version: 8,
     glyphs: 'https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf',
@@ -24,6 +29,6 @@ export function buildMapStyle(pmtilesUrl: string): StyleSpecification {
         attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       },
     },
-    layers: layers('protomaps', namedTheme('dark')),
+    layers: layers('protomaps', namedTheme(theme)),
   }
 }
