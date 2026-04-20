@@ -1,4 +1,4 @@
-# Current Feature: 13 Onboarding Sheet + Rider-Friendly Copy
+# Current Feature: 13 UX Polish — Onboarding, Copy, Control Layout
 
 ## Status
 
