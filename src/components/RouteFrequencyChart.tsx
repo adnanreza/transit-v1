@@ -9,6 +9,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { useResolvedTheme } from '@/lib/url-state'
 import {
   hourlyChartSeries,
   maxSeriesHeadway,
@@ -50,6 +51,7 @@ function formatHeadway(value: number | null): string {
 }
 
 export function RouteFrequencyChart({ route }: Props) {
+  const theme = useResolvedTheme()
   const series = DAY_ORDER.map(({ day, label }) => ({
     day,
     label,
@@ -70,7 +72,13 @@ export function RouteFrequencyChart({ route }: Props) {
       </h3>
       <div className="flex flex-col gap-3">
         {series.map(({ day, label, data }) => (
-          <DayMultiple key={day} label={label} data={data} yMax={yMax} />
+          <DayMultiple
+            key={day}
+            label={label}
+            data={data}
+            yMax={yMax}
+            theme={theme}
+          />
         ))}
       </div>
       <p className="text-[11px] text-neutral-500">
@@ -85,9 +93,16 @@ interface DayMultipleProps {
   label: string
   data: HourlyPoint[]
   yMax: number
+  theme: 'dark' | 'light'
 }
 
-function DayMultiple({ label, data, yMax }: DayMultipleProps) {
+function DayMultiple({ label, data, yMax, theme }: DayMultipleProps) {
+  // On dark backgrounds the data line reads as near-white; on light it needs
+  // to flip dark or it vanishes into the pale gray chart card.
+  const lineColor = theme === 'dark' ? '#fafafa' : '#171717'
+  const tooltipBg = theme === 'dark' ? '#0a0a0a' : '#fafafa'
+  const tooltipBorder = theme === 'dark' ? '#ffffff20' : '#00000020'
+  const tooltipText = theme === 'dark' ? '#fafafa' : '#171717'
   return (
     <figure className="rounded-md bg-neutral-200/40 p-2 ring-1 ring-black/5 dark:bg-neutral-950/40 dark:ring-white/5">
       <figcaption className="px-1 pb-1 text-[11px] font-medium text-neutral-700 dark:text-neutral-300">
@@ -133,17 +148,17 @@ function DayMultiple({ label, data, yMax }: DayMultipleProps) {
               />
             </ReferenceLine>
             <Tooltip
-              cursor={{ stroke: '#ffffff30' }}
+              cursor={{ stroke: theme === 'dark' ? '#ffffff30' : '#00000030' }}
               contentStyle={{
-                backgroundColor: '#0a0a0a',
-                border: '1px solid #ffffff20',
+                backgroundColor: tooltipBg,
+                border: `1px solid ${tooltipBorder}`,
                 borderRadius: 6,
                 fontSize: 11,
                 padding: '4px 8px',
-                color: '#fafafa',
+                color: tooltipText,
               }}
-              labelStyle={{ color: '#fafafa' }}
-              itemStyle={{ color: '#fafafa' }}
+              labelStyle={{ color: tooltipText }}
+              itemStyle={{ color: tooltipText }}
               labelFormatter={(hour) =>
                 typeof hour === 'number' ? formatHour(hour) : ''
               }
@@ -155,10 +170,10 @@ function DayMultiple({ label, data, yMax }: DayMultipleProps) {
             <Line
               type="monotone"
               dataKey="headway"
-              stroke="#fafafa"
+              stroke={lineColor}
               strokeWidth={1.5}
-              dot={{ r: 1.5, fill: '#fafafa' }}
-              activeDot={{ r: 3, fill: '#fafafa' }}
+              dot={{ r: 1.5, fill: lineColor }}
+              activeDot={{ r: 3, fill: lineColor }}
               connectNulls={false}
               isAnimationActive={false}
             />
