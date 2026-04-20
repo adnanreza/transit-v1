@@ -56,6 +56,17 @@ export default function App() {
   const [aboutOpen, setAboutOpen] = useState(false)
   const routes = useRoutes()
 
+  // Only one side sheet at a time — stacking them creates dead space and
+  // confuses users who can't see both states at once.
+  const openAbout = () => {
+    setAboutOpen(true)
+    if (selectedRouteId) setSelectedRouteId(null)
+  }
+  const openRoute = (id: string) => {
+    setSelectedRouteId(id)
+    if (aboutOpen) setAboutOpen(false)
+  }
+
   // Initial ?route=<id> → pan to bbox once routes load. Later clicks don't
   // re-pan (they just open the panel), so this fires a single time. Routes
   // load async, so this can't be a lazy useState initializer; a one-shot
@@ -88,7 +99,7 @@ export default function App() {
           selectedRouteId={selectedRouteId}
           theme={resolvedTheme}
           onViewChange={setView}
-          onRouteSelect={setSelectedRouteId}
+          onRouteSelect={openRoute}
           onBackgroundClick={() => setSelectedRouteId(null)}
         />
       </Suspense>
@@ -133,7 +144,10 @@ export default function App() {
       <div className="pointer-events-none absolute top-3 left-3">
         <RouteSearch
           routes={routes.status === 'ready' ? routes.routes : null}
-          onSelect={(route) => setFocusRequest({ route, at: Date.now() })}
+          onSelect={(route) => {
+            if (aboutOpen) setAboutOpen(false)
+            setFocusRequest({ route, at: Date.now() })
+          }}
         />
       </div>
       <div className="pointer-events-none absolute bottom-8 left-3">
@@ -154,7 +168,7 @@ export default function App() {
         </div>
       </div>
       <div className="pointer-events-none absolute top-3 right-3 flex items-center gap-2">
-        <AboutButton onClick={() => setAboutOpen(true)} />
+        <AboutButton onClick={openAbout} />
         <ThemeToggle pref={themePref} onChange={setThemePref} />
       </div>
       <div className="pointer-events-none absolute bottom-12 right-3">
