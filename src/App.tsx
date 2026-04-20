@@ -92,47 +92,42 @@ export default function App() {
           onBackgroundClick={() => setSelectedRouteId(null)}
         />
       </Suspense>
-      <footer className="pointer-events-none absolute inset-x-0 top-0 p-3 text-xs">
-        <div className="pointer-events-auto mx-auto flex max-w-4xl flex-col gap-1 rounded-md bg-white/80 px-3 py-2 text-neutral-700 shadow-lg ring-1 ring-black/10 backdrop-blur sm:flex-row sm:items-center sm:justify-between dark:bg-neutral-950/80 dark:text-neutral-300 dark:ring-white/10">
-          <div className="space-y-0.5">
-            <p>
-              Route and arrival data used in this product or service is provided by permission of{' '}
-              <a
-                href="https://www.translink.ca/about-us/doing-business-with-translink/app-developer-resources"
-                className="underline hover:text-neutral-950 dark:hover:text-neutral-100"
-              >
-                TransLink
-              </a>
-              .
-            </p>
-            <p className="text-neutral-500">
-              TransLink assumes no responsibility for the accuracy or currency of the Data used in this product or service.
-            </p>
-            <p className="text-neutral-500">
-              Map data ©{' '}
-              <a
-                href="https://www.openstreetmap.org/copyright"
-                className="underline hover:text-neutral-900 dark:hover:text-neutral-300"
-              >
-                OpenStreetMap contributors
-              </a>
-              .
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
+      <footer className="pointer-events-none absolute inset-x-0 bottom-0 px-3 pb-1.5 text-[11px] leading-tight">
+        <div className="pointer-events-auto mx-auto flex max-w-5xl flex-wrap items-center justify-center gap-x-3 gap-y-0.5 text-neutral-600 dark:text-neutral-400">
+          <span>
+            Route data provided by permission of{' '}
+            <a
+              href="https://www.translink.ca/about-us/doing-business-with-translink/app-developer-resources"
+              className="underline hover:text-neutral-900 dark:hover:text-neutral-200"
+            >
+              TransLink
+            </a>
+            .
+          </span>
+          <span>
+            Map ©{' '}
+            <a
+              href="https://www.openstreetmap.org/copyright"
+              className="underline hover:text-neutral-900 dark:hover:text-neutral-200"
+            >
+              OpenStreetMap contributors
+            </a>
+            .
+          </span>
+          <span>
             <a
               href="https://github.com/adnanreza/transit-v1"
-              className="underline hover:text-neutral-950 dark:hover:text-neutral-100"
+              className="underline hover:text-neutral-900 dark:hover:text-neutral-200"
             >
               GitHub
-            </a>
+            </a>{' '}·{' '}
             <a
               href="https://github.com/adnanreza/transit-v1/blob/main/LICENSE"
-              className="underline hover:text-neutral-950 dark:hover:text-neutral-100"
+              className="underline hover:text-neutral-900 dark:hover:text-neutral-200"
             >
               MIT
             </a>
-          </div>
+          </span>
         </div>
       </footer>
       <div className="pointer-events-none absolute top-3 left-3">

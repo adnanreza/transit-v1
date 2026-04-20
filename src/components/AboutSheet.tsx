@@ -103,6 +103,10 @@ export function AboutSheet({ open, onOpenChange }: AboutSheetProps) {
               via Protomaps.
             </p>
             <p className="text-xs text-neutral-600 dark:text-neutral-400">
+              TransLink assumes no responsibility for the accuracy or
+              currency of the data used in this product or service.
+            </p>
+            <p className="text-xs text-neutral-600 dark:text-neutral-400">
               Built as a portfolio project —{' '}
               <a
                 href="https://github.com/adnanreza/transit-v1"
