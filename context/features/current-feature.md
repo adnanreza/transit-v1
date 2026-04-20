@@ -1,16 +1,61 @@
-# Current Feature
+# Current Feature: 13 Onboarding Sheet + Rider-Friendly Copy
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- Populated by `/feature load` from the feature spec's Acceptance Criteria. -->
+### Info button + About sheet
+- New `AboutSheet` component on shadcn `Sheet` (same primitive as 08); opens right, `modal={false}`, Esc + close-button dismiss
+- New Info icon button in overlay top-right, immediately left of the theme toggle; same ghost-button styling; lucide `Info`; `aria-label="About this map"`
+- Sheet content (~5 paragraphs):
+  - Headline: "Metro Vancouver Frequent Transit Map"
+  - One-sentence concept
+  - One-sentence rider-grounded payoff
+  - ≤4-item "how to use" list
+  - FTN explainer (spell out acronym + paraphrase TransLink rule)
+  - Footer: data source, GitHub link, SPEC.md link
+- **No auto-open on first visit** — the button itself is the affordance
+
+### Label rewrites
+- `ThresholdSlider`: `THRESHOLDS` → `HOW OFTEN IS "FREQUENT"?` + muted subtitle `Drag to customize.`
+- `ModeFilter`: `MODE` → `SHOW`
+- `FrequencyControls`: `DAY TYPE` → `WHICH DAY`; `TIME WINDOW` → `TIME OF DAY`
+- Preserve existing heading semantics / uppercase tracking — we're swapping *words*, not redesigning
+
+### Legend band phrasing
+- `≤ 10 min` → `Very frequent — every 10 min or better`
+- `≤ 15 min (FTN)` → `Frequent — every 15 min (FTN)`
+- `≤ 30 min` → `Standard — every 30 min or better`
+- `> 30 min` → `Infrequent — every 30+ min`
+- `Peak only` → `Peak only (rush hour)`
+- `Night only` → `Night only (overnight)`
+- `No service` → `No service at this time`
+- Constraint: longest row must still fit 14rem; verify in both themes
+- Slider-tick labels stay terse (context is implicit next to numbers)
+
+### FTN acronym
+- Spelled out in About sheet's explainer paragraph
+- Route panel already says "Frequent Transit Network" in its section header — no change
+- Legend row keeps the compact `(FTN)` suffix
+
+### Accessibility
+- Info button `aria-label="About this map"`; sheet `aria-labelledby` points at sheet title
+- Label changes preserve existing heading semantics
+- `modal={false}` + explicit autofocus pattern from 08 preserved
 
 ## Notes
 
-<!-- Dependencies, performance budget, and constraints from the feature spec. -->
+- Depends on: **04–09** (surface area the sheet describes), **08** (Sheet primitive + `modal={false}` pattern), **12** (theme-aware surfaces from the start)
+- **Why a side sheet not a dialog?** Route detail panel trained users to expect right-side content; reuse the affordance
+- **Why no auto-open?** localStorage first-run banners nag returning users + get dismissed unread; a visible button is the cleanest equivalent
+- **Why not "Show up and go"?** Mixes registers with "Peak only" / "Night only" which stay descriptive; keep vocabulary consistent
+- Out of scope: auto-opening on first visit, full onboarding tour (Shepherd/Driver), contextual tooltips on every panel, curated example routes, progressive disclosure of power controls, rewriting band *names*
+- **Commit plan**:
+  1. `feat: add About info button and onboarding side sheet`
+  2. `feat: rider-friendly labels on controls and legend`
+  3. (optional) `docs: README screenshot showing the About sheet`
 
 ## History
 
