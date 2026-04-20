@@ -66,7 +66,7 @@ export function RouteFrequencyChart({ route }: Props) {
         id="route-detail-chart"
         className="text-xs font-medium text-neutral-900 dark:text-neutral-100"
       >
-        24-hour headway
+        24-hour headway profile
       </h3>
       <div className="flex flex-col gap-3">
         {series.map(({ day, label, data }) => (

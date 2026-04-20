@@ -43,7 +43,7 @@ export function AboutSheet({ open, onOpenChange }: AboutSheetProps) {
 
         <div className="flex flex-col gap-5 p-4 text-sm text-neutral-800 dark:text-neutral-200">
           <section className="flex flex-col gap-1.5">
-            <h3 className="text-[11px] font-medium uppercase tracking-wider text-neutral-500">
+            <h3 className="text-xs font-medium text-neutral-900 dark:text-neutral-100">
               What you're looking at
             </h3>
             <p>
@@ -56,7 +56,7 @@ export function AboutSheet({ open, onOpenChange }: AboutSheetProps) {
           </section>
 
           <section className="flex flex-col gap-1.5">
-            <h3 className="text-[11px] font-medium uppercase tracking-wider text-neutral-500">
+            <h3 className="text-xs font-medium text-neutral-900 dark:text-neutral-100">
               How to use it
             </h3>
             <ul className="flex list-disc flex-col gap-1 pl-5">
@@ -68,7 +68,7 @@ export function AboutSheet({ open, onOpenChange }: AboutSheetProps) {
           </section>
 
           <section className="flex flex-col gap-1.5">
-            <h3 className="text-[11px] font-medium uppercase tracking-wider text-neutral-500">
+            <h3 className="text-xs font-medium text-neutral-900 dark:text-neutral-100">
               What "FTN" means
             </h3>
             <p>
@@ -82,7 +82,7 @@ export function AboutSheet({ open, onOpenChange }: AboutSheetProps) {
           </section>
 
           <section className="flex flex-col gap-1.5">
-            <h3 className="text-[11px] font-medium uppercase tracking-wider text-neutral-500">
+            <h3 className="text-xs font-medium text-neutral-900 dark:text-neutral-100">
               About the data
             </h3>
             <p>
