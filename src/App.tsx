@@ -1,4 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { AboutButton } from '@/components/AboutButton'
+import { AboutSheet } from '@/components/AboutSheet'
 import { FrequencyControls } from '@/components/FrequencyControls'
 import { Legend } from '@/components/Legend'
 import { ModeFilter } from '@/components/ModeFilter'
@@ -51,7 +53,19 @@ export default function App() {
   const resolvedTheme = useResolvedTheme()
   const [selectedRouteId, setSelectedRouteId] = useSelectedRoute()
   const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null)
+  const [aboutOpen, setAboutOpen] = useState(false)
   const routes = useRoutes()
+
+  // Only one side sheet at a time — stacking them creates dead space and
+  // confuses users who can't see both states at once.
+  const openAbout = () => {
+    setAboutOpen(true)
+    if (selectedRouteId) setSelectedRouteId(null)
+  }
+  const openRoute = (id: string) => {
+    setSelectedRouteId(id)
+    if (aboutOpen) setAboutOpen(false)
+  }
 
   // Initial ?route=<id> → pan to bbox once routes load. Later clicks don't
   // re-pan (they just open the panel), so this fires a single time. Routes
@@ -85,76 +99,82 @@ export default function App() {
           selectedRouteId={selectedRouteId}
           theme={resolvedTheme}
           onViewChange={setView}
-          onRouteSelect={setSelectedRouteId}
+          onRouteSelect={openRoute}
           onBackgroundClick={() => setSelectedRouteId(null)}
         />
       </Suspense>
-      <footer className="pointer-events-none absolute inset-x-0 top-0 p-3 text-xs">
-        <div className="pointer-events-auto mx-auto flex max-w-4xl flex-col gap-1 rounded-md bg-white/80 px-3 py-2 text-neutral-700 shadow-lg ring-1 ring-black/10 backdrop-blur sm:flex-row sm:items-center sm:justify-between dark:bg-neutral-950/80 dark:text-neutral-300 dark:ring-white/10">
-          <div className="space-y-0.5">
-            <p>
-              Route and arrival data used in this product or service is provided by permission of{' '}
-              <a
-                href="https://www.translink.ca/about-us/doing-business-with-translink/app-developer-resources"
-                className="underline hover:text-neutral-950 dark:hover:text-neutral-100"
-              >
-                TransLink
-              </a>
-              .
-            </p>
-            <p className="text-neutral-500">
-              TransLink assumes no responsibility for the accuracy or currency of the Data used in this product or service.
-            </p>
-            <p className="text-neutral-500">
-              Map data ©{' '}
-              <a
-                href="https://www.openstreetmap.org/copyright"
-                className="underline hover:text-neutral-900 dark:hover:text-neutral-300"
-              >
-                OpenStreetMap contributors
-              </a>
-              .
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <a
-              href="https://github.com/adnanreza/transit-v1"
-              className="underline hover:text-neutral-950 dark:hover:text-neutral-100"
-            >
-              GitHub
-            </a>
-            <a
-              href="https://github.com/adnanreza/transit-v1/blob/main/LICENSE"
-              className="underline hover:text-neutral-950 dark:hover:text-neutral-100"
-            >
-              MIT
-            </a>
-          </div>
-        </div>
-      </footer>
       <div className="pointer-events-none absolute top-3 left-3">
         <RouteSearch
           routes={routes.status === 'ready' ? routes.routes : null}
-          onSelect={(route) => setFocusRequest({ route, at: Date.now() })}
+          onSelect={(route) => {
+            if (aboutOpen) setAboutOpen(false)
+            setFocusRequest({ route, at: Date.now() })
+          }}
         />
       </div>
-      <div className="pointer-events-none absolute bottom-3 left-3 flex flex-col gap-2">
-        <div className="pointer-events-auto flex w-72 flex-col gap-4 rounded-md bg-white/80 p-3 text-xs text-neutral-700 shadow-lg ring-1 ring-black/10 backdrop-blur dark:bg-neutral-950/80 dark:text-neutral-300 dark:ring-white/10">
+      {/* Bottom bar — controls strip on top, footer underneath, stacked in a
+          single absolutely-positioned column so the footer can't get covered
+          by a tall controls card on narrow viewports. */}
+      <div className="pointer-events-none absolute inset-x-2 bottom-1.5 flex flex-col gap-1.5">
+        <div className="pointer-events-auto flex flex-wrap items-start gap-x-5 gap-y-3 rounded-md bg-white/85 px-4 py-3 text-xs text-neutral-800 shadow-lg ring-1 ring-black/10 backdrop-blur dark:bg-neutral-950/85 dark:text-neutral-200 dark:ring-white/10">
+          <FrequencyControls
+            day={day}
+            window={window}
+            onDayChange={setDay}
+            onWindowChange={setWindow}
+          />
           <ModeFilter enabled={enabledModes} onChange={setEnabledModes} />
-          <ThresholdSlider thresholds={thresholds} theme={resolvedTheme} onChange={setThresholds} />
+          <div className="min-w-[14rem] flex-1">
+            <ThresholdSlider
+              thresholds={thresholds}
+              theme={resolvedTheme}
+              onChange={setThresholds}
+            />
+          </div>
+          <div className="min-w-[12rem] flex-1">
+            <Legend thresholds={thresholds} theme={resolvedTheme} />
+          </div>
         </div>
-        <FrequencyControls
-          day={day}
-          window={window}
-          onDayChange={setDay}
-          onWindowChange={setWindow}
-        />
+        <footer className="pointer-events-auto mx-auto flex max-w-5xl flex-wrap items-center justify-center gap-x-3 gap-y-0.5 px-2 text-[11px] leading-tight text-neutral-600 dark:text-neutral-400">
+          <span>
+            Route data provided by permission of{' '}
+            <a
+              href="https://www.translink.ca/about-us/doing-business-with-translink/app-developer-resources"
+              className="underline hover:text-neutral-900 dark:hover:text-neutral-200"
+            >
+              TransLink
+            </a>
+            .
+          </span>
+          <span>
+            Map ©{' '}
+            <a
+              href="https://www.openstreetmap.org/copyright"
+              className="underline hover:text-neutral-900 dark:hover:text-neutral-200"
+            >
+              OpenStreetMap contributors
+            </a>
+            .
+          </span>
+          <span>
+            <a
+              href="https://github.com/adnanreza/transit-v1"
+              className="underline hover:text-neutral-900 dark:hover:text-neutral-200"
+            >
+              GitHub
+            </a>{' '}·{' '}
+            <a
+              href="https://github.com/adnanreza/transit-v1/blob/main/LICENSE"
+              className="underline hover:text-neutral-900 dark:hover:text-neutral-200"
+            >
+              MIT
+            </a>
+          </span>
+        </footer>
       </div>
-      <div className="pointer-events-none absolute top-3 right-3">
+      <div className="pointer-events-none absolute top-3 right-3 flex items-center gap-2">
+        <AboutButton onClick={openAbout} />
         <ThemeToggle pref={themePref} onChange={setThemePref} />
-      </div>
-      <div className="pointer-events-none absolute bottom-12 right-3">
-        <Legend thresholds={thresholds} theme={resolvedTheme} />
       </div>
       <Suspense fallback={null}>
         <RouteDetailPanel
@@ -170,6 +190,7 @@ export default function App() {
           onClose={() => setSelectedRouteId(null)}
         />
       </Suspense>
+      <AboutSheet open={aboutOpen} onOpenChange={setAboutOpen} />
     </div>
   )
 }

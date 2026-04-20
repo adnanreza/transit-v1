@@ -15,6 +15,7 @@ import { hourlyChartSeries } from '@/lib/route-chart'
 import {
   countMinorPatterns,
   majorPatternsSorted,
+  normalizePatternTermini,
 } from '@/lib/route-patterns'
 import type { RouteIndexEntry } from '@/lib/use-routes'
 import type {
@@ -38,6 +39,20 @@ interface RouteDetailPanelProps {
 // GTFS route_type '3' is bus; the rest (0/1/2/4/…) are rapid transit or
 // non-bus modes that keep their branded GTFS route_color in the UI.
 const BUS_ROUTE_TYPE = '3'
+
+// TransLink's rapid transit routes (Canada Line, Expo Line, Millennium Line,
+// SeaBus) have an empty route_short_name — only route_long_name. Fall back
+// to the initials of the long name so the badge isn't visually empty.
+function routeBadgeLabel(entry: RouteIndexEntry): string {
+  if (entry.route_short_name) return entry.route_short_name
+  const initials = entry.route_long_name
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => word[0])
+    .join('')
+    .toUpperCase()
+  return initials.slice(0, 3) || '—'
+}
 
 function badgeColor(
   entry: RouteIndexEntry,
@@ -118,7 +133,7 @@ export default function RouteDetailPanel({
             <>
               <div className="flex items-start gap-3">
                 <span
-                  className="flex h-11 min-w-11 items-center justify-center rounded-md px-2 font-mono text-base font-semibold text-neutral-950 shadow-sm"
+                  className="flex h-14 min-w-16 items-center justify-center rounded-md px-2.5 font-mono text-xl font-bold text-neutral-950 shadow-sm"
                   style={{
                     backgroundColor: badgeColor(
                       entry,
@@ -129,11 +144,11 @@ export default function RouteDetailPanel({
                       theme,
                     ),
                   }}
-                  aria-label={`Route ${entry.route_short_name}`}
+                  aria-label={`Route ${entry.route_short_name || entry.route_long_name}`}
                 >
-                  {entry.route_short_name}
+                  {routeBadgeLabel(entry)}
                 </span>
-                <div className="min-w-0 flex-1 pt-0.5">
+                <div className="min-w-0 flex-1 pt-1">
                   <SheetTitle className="truncate text-base leading-tight">
                     {entry.route_long_name}
                   </SheetTitle>
@@ -143,8 +158,11 @@ export default function RouteDetailPanel({
                 </div>
               </div>
               <SheetDescription id="route-detail-description" className="sr-only">
-                Frequency profile and FTN qualification for route{' '}
-                {entry.route_short_name}.
+                Frequency profile and FTN qualification for{' '}
+                {entry.route_short_name
+                  ? `route ${entry.route_short_name}`
+                  : entry.route_long_name}
+                .
               </SheetDescription>
             </>
           ) : (
@@ -171,8 +189,9 @@ export default function RouteDetailPanel({
 
 function Termini({ route }: { route: RouteFrequency }) {
   const majors = majorPatternsSorted(route)
+  const pairs = normalizePatternTermini(majors)
   const minorCount = countMinorPatterns(route)
-  if (majors.length === 0) return null
+  if (pairs.length === 0) return null
   return (
     <section
       aria-labelledby="route-detail-termini"
@@ -180,18 +199,18 @@ function Termini({ route }: { route: RouteFrequency }) {
     >
       <h3
         id="route-detail-termini"
-        className="text-[11px] font-medium uppercase tracking-wider text-neutral-500"
+        className="text-xs font-medium text-neutral-900 dark:text-neutral-100"
       >
-        {majors.length === 1 ? 'Terminus' : 'Termini'}
+        {pairs.length === 1 ? 'Route endpoints' : 'Endpoints'}
       </h3>
       <ul className="flex flex-col gap-1 text-sm text-neutral-800 dark:text-neutral-200">
-        {majors.map((p) => (
-          <li key={p.pattern_id} className="tabular-nums">
-            <span>{p.first_stop_name || '—'}</span>
+        {pairs.map(({ a, b }, i) => (
+          <li key={`${a}-${b}-${i}`}>
+            <span>{a || '—'}</span>
             <span className="mx-2 text-neutral-500" aria-label="to and from">
               ⇄
             </span>
-            <span>{p.last_stop_name || '—'}</span>
+            <span>{b || '—'}</span>
           </li>
         ))}
       </ul>
@@ -218,15 +237,15 @@ function FtnStatus({
     <section aria-labelledby="route-detail-ftn" className="flex flex-col gap-1">
       <h3
         id="route-detail-ftn"
-        className="text-[11px] font-medium uppercase tracking-wider text-neutral-500"
+        className="text-xs font-medium text-neutral-900 dark:text-neutral-100"
       >
         Frequent Transit Network
       </h3>
       <p
         className={
           qualifies
-            ? 'flex items-center gap-2 text-base font-medium text-emerald-400'
-            : 'flex items-center gap-2 text-base font-medium text-neutral-800 dark:text-neutral-200'
+            ? 'flex items-center gap-2 text-base font-medium text-emerald-600 dark:text-emerald-400'
+            : 'flex items-center gap-2 text-base font-medium text-amber-600 dark:text-amber-400'
         }
       >
         <span aria-hidden="true" className="text-lg leading-none">

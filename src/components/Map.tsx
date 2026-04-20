@@ -27,16 +27,19 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 const ROUTES_URL = '/data/routes.geojson'
 const STOPS_URL = '/data/stops.geojson'
 const STOPS_LAYER_ID = 'stops-circles'
+const RAPID_CASING_LAYER_ID = 'routes-lines-rapid-casing'
 const FALLBACK_ROUTE_COLOR = '#888888'
 const ROUTE_LAYER_IDS = ['routes-lines-solid', 'routes-lines-dashed'] as const
 const SELECTED_LAYER_ID = 'routes-lines-selected'
 
-// Bottom-up z-order for the transit layers this component manages. Stops sit
-// under the route lines so route-hover hit priority wins near a stop; the
-// selected-route overlay sits on top so its pulse reads through everything.
-// Used as the source of truth for the dev-mode z-order assertion below.
+// Bottom-up z-order for the transit layers this component manages. Stops at
+// the bottom; rapid-transit casing is next so the halo reads behind the brand
+// color paint above; bus route layers stack on top; the selected-route
+// overlay sits above everything so its pulse reads through the map. Source
+// of truth for the dev-mode z-order assertion below.
 const TRANSIT_LAYER_STACK = [
   STOPS_LAYER_ID,
+  RAPID_CASING_LAYER_ID,
   'routes-lines-dashed',
   'routes-lines-solid',
   SELECTED_LAYER_ID,
@@ -120,6 +123,30 @@ const lineWidth: ExpressionSpecification = [
   16,
   ['case', isBus, 3.5, 7],
 ]
+
+// Casing width tracks the rapid transit body width + ~3px extra at each zoom
+// so the halo is visible on both sides without overwhelming the brand color.
+const rapidCasingWidth: ExpressionSpecification = [
+  'interpolate',
+  ['linear'],
+  ['zoom'],
+  9,
+  4,
+  13,
+  7.5,
+  16,
+  10,
+]
+
+// White casing for rapid transit against the dark basemap, near-black against
+// the light basemap. The halo makes Expo Line blue, Canada Line teal, and
+// Millennium Line yellow readable against colored base-map terrain AND
+// distinguishable from same-hue bus band colors at a glance — classic
+// transit-map styling (think London Tube).
+const RAPID_CASING_COLOR: Record<'dark' | 'light', string> = {
+  dark: '#ffffff',
+  light: '#0a0a0a',
+}
 
 function buildBandFilters(frequencies: FrequenciesFile) {
   const dashedIdsFilter: FilterSpecification = [
@@ -213,6 +240,26 @@ function addRouteLayers(
 
   addStopsLayer(map, theme)
 
+  // Rapid-transit casing. Only non-bus route_types pass the filter; the mode
+  // filter is composed in so SkyTrain / SeaBus / WCE toggles hide the casing
+  // in lockstep with the colored line above.
+  map.addLayer({
+    id: RAPID_CASING_LAYER_ID,
+    type: 'line',
+    source: 'routes',
+    filter: [
+      'all',
+      ['!', isBus],
+      modeFilterExpression(enabledModes),
+    ] as unknown as FilterSpecification,
+    layout: { 'line-cap': 'round', 'line-join': 'round' },
+    paint: {
+      'line-color': RAPID_CASING_COLOR[theme],
+      'line-opacity': 0.9,
+      'line-width': rapidCasingWidth,
+    },
+  })
+
   const bands = buildBandFilters(frequencies)
   const color = lineColor(frequencies, day, window, thresholds, theme)
   const opacity = lineOpacity(frequencies, day, window, thresholds)
@@ -302,6 +349,12 @@ function updateModeFilters(
   const bands = buildBandFilters(frequencies)
   map.setFilter('routes-lines-dashed', composeFilter(bands.dashedIds, enabledModes))
   map.setFilter('routes-lines-solid', composeFilter(bands.solidIds, enabledModes))
+  // Rapid-transit casing tracks the mode filter so toggling SkyTrain / SeaBus /
+  // WCE hides the halo in lockstep with the colored line above.
+  map.setFilter(
+    RAPID_CASING_LAYER_ID,
+    ['all', ['!', isBus], modeFilterExpression(enabledModes)] as unknown as FilterSpecification,
+  )
 }
 
 function repaintBands(
@@ -387,6 +440,10 @@ export function Map({
       style: buildMapStyle(getPmtilesUrl(), theme),
       center: view.center,
       zoom: view.zoom,
+      // Our footer carries both OSM + TransLink attribution; MapLibre's
+      // built-in "MapLibre | © OpenStreetMap" badge is redundant and
+      // visually competes with the footer for the same credit.
+      attributionControl: false,
     })
     mapRef.current = map
 

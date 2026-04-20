@@ -1,5 +1,6 @@
 import {
   CartesianGrid,
+  Label,
   Line,
   LineChart,
   ReferenceLine,
@@ -8,6 +9,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { useResolvedTheme } from '@/lib/url-state'
 import {
   hourlyChartSeries,
   maxSeriesHeadway,
@@ -19,6 +21,11 @@ import type {
 } from '../../scripts/types/frequencies'
 
 const FTN_THRESHOLD_MIN = 15
+// Fixed y-axis floor. `maxSeriesHeadway`'s default is 30, which makes the
+// 15-min FTN line sit at the middle (top half = "more frequent than FTN",
+// bottom half = "below FTN"). Letting the auto-scale go lower collapses the
+// data onto the top edge and the chart reads as empty.
+const Y_AXIS_FLOOR = 45
 const DAY_ORDER: { day: DayType; label: string }[] = [
   { day: 'weekday', label: 'Weekday' },
   { day: 'saturday', label: 'Saturday' },
@@ -44,32 +51,39 @@ function formatHeadway(value: number | null): string {
 }
 
 export function RouteFrequencyChart({ route }: Props) {
+  const theme = useResolvedTheme()
   const series = DAY_ORDER.map(({ day, label }) => ({
     day,
     label,
     data: hourlyChartSeries(route, day),
   }))
-  // Shared y-max so the three multiples are visually comparable; floor at 30
-  // so routes with only sub-30-min headways still have room above the 15-min
-  // reference line and don't read as a pancake.
-  const yMax = maxSeriesHeadway(series.map((s) => s.data))
+  // Shared y-max so the three multiples are visually comparable. Floor at 45
+  // min gives the 15-min FTN line a middle-of-the-chart anchor regardless of
+  // how frequent the route actually is.
+  const yMax = maxSeriesHeadway(series.map((s) => s.data), Y_AXIS_FLOOR)
 
   return (
     <section aria-labelledby="route-detail-chart" className="flex flex-col gap-3">
       <h3
         id="route-detail-chart"
-        className="text-[11px] font-medium uppercase tracking-wider text-neutral-500"
+        className="text-xs font-medium text-neutral-900 dark:text-neutral-100"
       >
-        24-hour headway
+        24-hour headway profile
       </h3>
       <div className="flex flex-col gap-3">
         {series.map(({ day, label, data }) => (
-          <DayMultiple key={day} label={label} data={data} yMax={yMax} />
+          <DayMultiple
+            key={day}
+            label={label}
+            data={data}
+            yMax={yMax}
+            theme={theme}
+          />
         ))}
       </div>
       <p className="text-[11px] text-neutral-500">
-        Headway in minutes. Lower bars = more frequent. Dashed line marks the
-        15-min FTN threshold.
+        Headway in minutes at each hour of day. The dashed line is the 15-min
+        FTN threshold — values above the line qualify that hour for FTN.
       </p>
     </section>
   )
@@ -79,9 +93,16 @@ interface DayMultipleProps {
   label: string
   data: HourlyPoint[]
   yMax: number
+  theme: 'dark' | 'light'
 }
 
-function DayMultiple({ label, data, yMax }: DayMultipleProps) {
+function DayMultiple({ label, data, yMax, theme }: DayMultipleProps) {
+  // On dark backgrounds the data line reads as near-white; on light it needs
+  // to flip dark or it vanishes into the pale gray chart card.
+  const lineColor = theme === 'dark' ? '#fafafa' : '#171717'
+  const tooltipBg = theme === 'dark' ? '#0a0a0a' : '#fafafa'
+  const tooltipBorder = theme === 'dark' ? '#ffffff20' : '#00000020'
+  const tooltipText = theme === 'dark' ? '#fafafa' : '#171717'
   return (
     <figure className="rounded-md bg-neutral-200/40 p-2 ring-1 ring-black/5 dark:bg-neutral-950/40 dark:ring-white/5">
       <figcaption className="px-1 pb-1 text-[11px] font-medium text-neutral-700 dark:text-neutral-300">
@@ -89,7 +110,7 @@ function DayMultiple({ label, data, yMax }: DayMultipleProps) {
       </figcaption>
       <div className="h-24 w-full">
         <ResponsiveContainer>
-          <LineChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+          <LineChart data={data} margin={{ top: 4, right: 32, left: 0, bottom: 0 }}>
             <CartesianGrid stroke="#ffffff10" vertical={false} />
             <XAxis
               dataKey="hour"
@@ -105,6 +126,7 @@ function DayMultiple({ label, data, yMax }: DayMultipleProps) {
               // Inverted domain: headway 0 is visually at the top, yMax at the
               // bottom — so "more frequent" reads as higher on the plot.
               domain={[yMax, 0]}
+              ticks={[0, 15, 30, yMax]}
               tickFormatter={(v: number) => `${v}`}
               stroke="#737373"
               tick={{ fontSize: 10, fill: '#a3a3a3' }}
@@ -115,16 +137,28 @@ function DayMultiple({ label, data, yMax }: DayMultipleProps) {
               stroke="#fbbf24"
               strokeDasharray="3 3"
               strokeWidth={1}
-            />
+            >
+              <Label
+                value="15 min"
+                position="insideRight"
+                offset={2}
+                fill="#fbbf24"
+                fontSize={10}
+                fontWeight={500}
+              />
+            </ReferenceLine>
             <Tooltip
-              cursor={{ stroke: '#ffffff30' }}
+              cursor={{ stroke: theme === 'dark' ? '#ffffff30' : '#00000030' }}
               contentStyle={{
-                backgroundColor: '#0a0a0a',
-                border: '1px solid #ffffff20',
+                backgroundColor: tooltipBg,
+                border: `1px solid ${tooltipBorder}`,
                 borderRadius: 6,
                 fontSize: 11,
                 padding: '4px 8px',
+                color: tooltipText,
               }}
+              labelStyle={{ color: tooltipText }}
+              itemStyle={{ color: tooltipText }}
               labelFormatter={(hour) =>
                 typeof hour === 'number' ? formatHour(hour) : ''
               }
@@ -136,10 +170,10 @@ function DayMultiple({ label, data, yMax }: DayMultipleProps) {
             <Line
               type="monotone"
               dataKey="headway"
-              stroke="#fafafa"
+              stroke={lineColor}
               strokeWidth={1.5}
-              dot={{ r: 1.5, fill: '#fafafa' }}
-              activeDot={{ r: 3, fill: '#fafafa' }}
+              dot={{ r: 1.5, fill: lineColor }}
+              activeDot={{ r: 3, fill: lineColor }}
               connectNulls={false}
               isAnimationActive={false}
             />

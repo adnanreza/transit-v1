@@ -1,16 +1,31 @@
-# Current Feature
+# Current Feature: 14 Layout + Information Architecture Overhaul (extends 13)
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- Populated by `/feature load` from the feature spec's Acceptance Criteria. -->
+Per [context/features/14-layout-overhaul.md](14-layout-overhaul.md):
+
+1. **Typography consistency** — finish sentence-case pass in panel + About sheet
+2. **Chart y-axis** — fixed domain + inline FTN reference label
+3. **Termini dedupe** — reverse-direction pattern pairs collapse to one ⇄ line
+4. **FTN ✗ amber color** — visual warning encoding
+5. **Attribution dedupe** — hide MapLibre's auto-OSM credit
+6. **Route badge** — bigger, better hierarchy in panel header
+7. **Toggle contrast** — stronger ToggleGroupItem pressed/unpressed
+8. **Compact horizontal legend** — colorbar instead of 7-row card
+9. **Bottom control strip** — horizontal strip replaces corner card
+10. **Mobile layout** — stacks vertically at <640px, no overlap
+11. **Sheet coordination** — About closes route panel and vice versa
 
 ## Notes
 
-<!-- Dependencies, performance budget, and constraints from the feature spec. -->
+- Continues on feature/13 branch (no new branch cut — scope growth, same files)
+- PR at `/feature complete` time will be titled "13 + 14 UX Overhaul"
+- All the 13 commits (7 of them) stay — new commits stack on top
+- Depends on 08/09/10/12 being merged (all are)
 
 ## History
 

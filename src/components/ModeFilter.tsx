@@ -9,8 +9,8 @@ interface Props {
 export function ModeFilter({ enabled, onChange }: Props) {
   return (
     <section className="flex flex-col gap-1.5">
-      <h2 className="text-[11px] font-medium uppercase tracking-wider text-neutral-500">
-        Mode
+      <h2 className="text-xs font-medium text-neutral-900 dark:text-neutral-100">
+        Show
       </h2>
       <ToggleGroup
         type="multiple"
