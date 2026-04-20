@@ -31,14 +31,12 @@ export function AboutSheet({ open, onOpenChange }: AboutSheetProps) {
         tabIndex={-1}
         side="right"
         className="w-full gap-0 overflow-y-auto sm:max-w-md"
-        aria-labelledby="about-sheet-title"
-        aria-describedby="about-sheet-description"
       >
         <SheetHeader className="gap-2 border-b border-black/10 pb-4 dark:border-white/10">
-          <SheetTitle id="about-sheet-title" className="text-base leading-tight">
+          <SheetTitle className="text-base leading-tight">
             Metro Vancouver Frequent Transit Map
           </SheetTitle>
-          <SheetDescription id="about-sheet-description" className="text-xs">
+          <SheetDescription className="text-xs">
             How to read the map and why it exists.
           </SheetDescription>
         </SheetHeader>
