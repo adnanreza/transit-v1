@@ -15,6 +15,7 @@ import { hourlyChartSeries } from '@/lib/route-chart'
 import {
   countMinorPatterns,
   majorPatternsSorted,
+  normalizePatternTermini,
 } from '@/lib/route-patterns'
 import type { RouteIndexEntry } from '@/lib/use-routes'
 import type {
@@ -171,8 +172,9 @@ export default function RouteDetailPanel({
 
 function Termini({ route }: { route: RouteFrequency }) {
   const majors = majorPatternsSorted(route)
+  const pairs = normalizePatternTermini(majors)
   const minorCount = countMinorPatterns(route)
-  if (majors.length === 0) return null
+  if (pairs.length === 0) return null
   return (
     <section
       aria-labelledby="route-detail-termini"
@@ -180,18 +182,18 @@ function Termini({ route }: { route: RouteFrequency }) {
     >
       <h3
         id="route-detail-termini"
-        className="text-[11px] font-medium uppercase tracking-wider text-neutral-500"
+        className="text-xs font-medium text-neutral-900 dark:text-neutral-100"
       >
-        {majors.length === 1 ? 'Terminus' : 'Termini'}
+        {pairs.length === 1 ? 'Route endpoints' : 'Endpoints'}
       </h3>
       <ul className="flex flex-col gap-1 text-sm text-neutral-800 dark:text-neutral-200">
-        {majors.map((p) => (
-          <li key={p.pattern_id} className="tabular-nums">
-            <span>{p.first_stop_name || '—'}</span>
+        {pairs.map(({ a, b }, i) => (
+          <li key={`${a}-${b}-${i}`}>
+            <span>{a || '—'}</span>
             <span className="mx-2 text-neutral-500" aria-label="to and from">
               ⇄
             </span>
-            <span>{p.last_stop_name || '—'}</span>
+            <span>{b || '—'}</span>
           </li>
         ))}
       </ul>

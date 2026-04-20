@@ -3,7 +3,11 @@ import type {
   PatternFrequency,
   RouteFrequency,
 } from '../../scripts/types/frequencies'
-import { countMinorPatterns, majorPatternsSorted } from './route-patterns'
+import {
+  countMinorPatterns,
+  majorPatternsSorted,
+  normalizePatternTermini,
+} from './route-patterns'
 
 function emptyHeadways() {
   const day = {
@@ -114,5 +118,60 @@ describe('countMinorPatterns', () => {
 
   it('returns 0 for a route with no patterns at all', () => {
     expect(countMinorPatterns(route([]))).toBe(0)
+  })
+})
+
+describe('normalizePatternTermini', () => {
+  function withTermini(
+    id: string,
+    first: string,
+    last: string,
+  ): PatternFrequency {
+    return pattern(id, 0.5, { first_stop_name: first, last_stop_name: last })
+  }
+
+  it('collapses reverse-direction pairs into a single A ⇄ B entry', () => {
+    const result = normalizePatternTermini([
+      withTermini('fwd', 'Burrard', 'Dunbar'),
+      withTermini('rev', 'Dunbar', 'Burrard'),
+    ])
+    expect(result).toEqual([{ a: 'Burrard', b: 'Dunbar' }])
+  })
+
+  it('keeps separate entries for a true branch (different endpoints)', () => {
+    const result = normalizePatternTermini([
+      withTermini('main-fwd', 'Downtown', 'UBC'),
+      withTermini('main-rev', 'UBC', 'Downtown'),
+      withTermini('branch', 'Downtown', 'Kerrisdale'),
+    ])
+    expect(result).toHaveLength(2)
+    expect(result[0]).toEqual({ a: 'Downtown', b: 'UBC' })
+    expect(result[1]).toEqual({ a: 'Downtown', b: 'Kerrisdale' })
+  })
+
+  it('preserves first-seen direction for stable display ordering', () => {
+    // "A → B" comes first, so that's what's shown — even though the reverse
+    // pattern also exists in the list.
+    const result = normalizePatternTermini([
+      withTermini('first', 'A Street', 'B Avenue'),
+      withTermini('second', 'B Avenue', 'A Street'),
+    ])
+    expect(result[0]).toEqual({ a: 'A Street', b: 'B Avenue' })
+  })
+
+  it('handles a single-pattern (one-way) route', () => {
+    expect(
+      normalizePatternTermini([withTermini('only', 'A', 'B')]),
+    ).toEqual([{ a: 'A', b: 'B' }])
+  })
+
+  it('drops patterns with empty termini on both ends', () => {
+    expect(
+      normalizePatternTermini([withTermini('bad', '', '')]),
+    ).toEqual([])
+  })
+
+  it('returns an empty list for no patterns', () => {
+    expect(normalizePatternTermini([])).toEqual([])
   })
 })
