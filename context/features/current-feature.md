@@ -1,4 +1,4 @@
-# Current Feature: 13 UX Polish — Onboarding, Copy, Control Layout
+# Current Feature: 14 Layout + Information Architecture Overhaul (extends 13)
 
 ## Status
 
@@ -6,56 +6,26 @@ In Progress
 
 ## Goals
 
-### Info button + About sheet
-- New `AboutSheet` component on shadcn `Sheet` (same primitive as 08); opens right, `modal={false}`, Esc + close-button dismiss
-- New Info icon button in overlay top-right, immediately left of the theme toggle; same ghost-button styling; lucide `Info`; `aria-label="About this map"`
-- Sheet content (~5 paragraphs):
-  - Headline: "Metro Vancouver Frequent Transit Map"
-  - One-sentence concept
-  - One-sentence rider-grounded payoff
-  - ≤4-item "how to use" list
-  - FTN explainer (spell out acronym + paraphrase TransLink rule)
-  - Footer: data source, GitHub link, SPEC.md link
-- **No auto-open on first visit** — the button itself is the affordance
+Per [context/features/14-layout-overhaul.md](14-layout-overhaul.md):
 
-### Label rewrites
-- `ThresholdSlider`: `THRESHOLDS` → `HOW OFTEN IS "FREQUENT"?` + muted subtitle `Drag to customize.`
-- `ModeFilter`: `MODE` → `SHOW`
-- `FrequencyControls`: `DAY TYPE` → `WHICH DAY`; `TIME WINDOW` → `TIME OF DAY`
-- Preserve existing heading semantics / uppercase tracking — we're swapping *words*, not redesigning
-
-### Legend band phrasing
-- `≤ 10 min` → `Very frequent — every 10 min or better`
-- `≤ 15 min (FTN)` → `Frequent — every 15 min (FTN)`
-- `≤ 30 min` → `Standard — every 30 min or better`
-- `> 30 min` → `Infrequent — every 30+ min`
-- `Peak only` → `Peak only (rush hour)`
-- `Night only` → `Night only (overnight)`
-- `No service` → `No service at this time`
-- Constraint: longest row must still fit 14rem; verify in both themes
-- Slider-tick labels stay terse (context is implicit next to numbers)
-
-### FTN acronym
-- Spelled out in About sheet's explainer paragraph
-- Route panel already says "Frequent Transit Network" in its section header — no change
-- Legend row keeps the compact `(FTN)` suffix
-
-### Accessibility
-- Info button `aria-label="About this map"`; sheet `aria-labelledby` points at sheet title
-- Label changes preserve existing heading semantics
-- `modal={false}` + explicit autofocus pattern from 08 preserved
+1. **Typography consistency** — finish sentence-case pass in panel + About sheet
+2. **Chart y-axis** — fixed domain + inline FTN reference label
+3. **Termini dedupe** — reverse-direction pattern pairs collapse to one ⇄ line
+4. **FTN ✗ amber color** — visual warning encoding
+5. **Attribution dedupe** — hide MapLibre's auto-OSM credit
+6. **Route badge** — bigger, better hierarchy in panel header
+7. **Toggle contrast** — stronger ToggleGroupItem pressed/unpressed
+8. **Compact horizontal legend** — colorbar instead of 7-row card
+9. **Bottom control strip** — horizontal strip replaces corner card
+10. **Mobile layout** — stacks vertically at <640px, no overlap
+11. **Sheet coordination** — About closes route panel and vice versa
 
 ## Notes
 
-- Depends on: **04–09** (surface area the sheet describes), **08** (Sheet primitive + `modal={false}` pattern), **12** (theme-aware surfaces from the start)
-- **Why a side sheet not a dialog?** Route detail panel trained users to expect right-side content; reuse the affordance
-- **Why no auto-open?** localStorage first-run banners nag returning users + get dismissed unread; a visible button is the cleanest equivalent
-- **Why not "Show up and go"?** Mixes registers with "Peak only" / "Night only" which stay descriptive; keep vocabulary consistent
-- Out of scope: auto-opening on first visit, full onboarding tour (Shepherd/Driver), contextual tooltips on every panel, curated example routes, progressive disclosure of power controls, rewriting band *names*
-- **Commit plan**:
-  1. `feat: add About info button and onboarding side sheet`
-  2. `feat: rider-friendly labels on controls and legend`
-  3. (optional) `docs: README screenshot showing the About sheet`
+- Continues on feature/13 branch (no new branch cut — scope growth, same files)
+- PR at `/feature complete` time will be titled "13 + 14 UX Overhaul"
+- All the 13 commits (7 of them) stay — new commits stack on top
+- Depends on 08/09/10/12 being merged (all are)
 
 ## History
 
