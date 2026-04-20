@@ -136,17 +136,22 @@ export default function App() {
           onSelect={(route) => setFocusRequest({ route, at: Date.now() })}
         />
       </div>
-      <div className="pointer-events-none absolute bottom-3 left-3 flex flex-col gap-2">
+      <div className="pointer-events-none absolute bottom-8 left-3">
         <div className="pointer-events-auto flex w-72 flex-col gap-4 rounded-md bg-white/80 p-3 text-xs text-neutral-700 shadow-lg ring-1 ring-black/10 backdrop-blur dark:bg-neutral-950/80 dark:text-neutral-300 dark:ring-white/10">
+          <FrequencyControls
+            day={day}
+            window={window}
+            onDayChange={setDay}
+            onWindowChange={setWindow}
+          />
+          <div className="border-t border-black/5 dark:border-white/5" />
           <ModeFilter enabled={enabledModes} onChange={setEnabledModes} />
-          <ThresholdSlider thresholds={thresholds} theme={resolvedTheme} onChange={setThresholds} />
+          <ThresholdSlider
+            thresholds={thresholds}
+            theme={resolvedTheme}
+            onChange={setThresholds}
+          />
         </div>
-        <FrequencyControls
-          day={day}
-          window={window}
-          onDayChange={setDay}
-          onWindowChange={setWindow}
-        />
       </div>
       <div className="pointer-events-none absolute top-3 right-3 flex items-center gap-2">
         <AboutButton onClick={() => setAboutOpen(true)} />

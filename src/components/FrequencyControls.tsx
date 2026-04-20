@@ -33,7 +33,7 @@ export function FrequencyControls({
   onWindowChange,
 }: Props) {
   return (
-    <div className="pointer-events-auto flex flex-col gap-3 rounded-md bg-white/80 p-3 text-xs text-neutral-700 shadow-lg ring-1 ring-black/10 backdrop-blur dark:bg-neutral-950/80 dark:text-neutral-300 dark:ring-white/10">
+    <div className="flex flex-col gap-3">
       <section className="flex flex-col gap-1.5">
         <h2 className="text-[11px] font-medium uppercase tracking-wider text-neutral-500">
           Which day
