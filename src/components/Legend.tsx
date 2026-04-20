@@ -22,18 +22,27 @@ export function Legend({ thresholds, theme }: Props) {
   const palette = bandColors(theme)
 
   const rows: Row[] = [
-    { label: `\u2264 ${thresholds.very_frequent} min`, color: palette.very_frequent },
+    {
+      label: `Very frequent — every ${thresholds.very_frequent} min or better`,
+      color: palette.very_frequent,
+    },
     {
       label: frequentMatchesFtn
-        ? `\u2264 ${thresholds.frequent} min (FTN)`
-        : `\u2264 ${thresholds.frequent} min`,
+        ? `Frequent — every ${thresholds.frequent} min (FTN)`
+        : `Frequent — every ${thresholds.frequent} min`,
       color: palette.frequent,
     },
-    { label: `\u2264 ${thresholds.standard} min`, color: palette.standard },
-    { label: `> ${thresholds.standard} min`, color: palette.infrequent },
-    { label: 'Peak only', color: palette.peak_only, dashed: true },
-    { label: 'Night only', color: palette.night_only, dashed: true },
-    { label: 'No service', color: NO_SERVICE_COLOR, dimmed: true },
+    {
+      label: `Standard — every ${thresholds.standard} min or better`,
+      color: palette.standard,
+    },
+    {
+      label: `Infrequent — every ${thresholds.standard}+ min`,
+      color: palette.infrequent,
+    },
+    { label: 'Peak only (rush hour)', color: palette.peak_only, dashed: true },
+    { label: 'Night only (overnight)', color: palette.night_only, dashed: true },
+    { label: 'No service at this time', color: NO_SERVICE_COLOR, dimmed: true },
   ]
 
   return (

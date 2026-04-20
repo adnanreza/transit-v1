@@ -19,10 +19,11 @@ export function ThresholdSlider({ thresholds, theme, onChange }: Props) {
     <section className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-[11px] font-medium uppercase tracking-wider text-neutral-500">
-          Thresholds
+          How often is "frequent"?
         </h2>
         <span className="text-[11px] text-neutral-500">min</span>
       </div>
+      <p className="-mt-1 text-[11px] text-neutral-500">Drag to customize.</p>
       <Slider
         min={MIN}
         max={MAX}

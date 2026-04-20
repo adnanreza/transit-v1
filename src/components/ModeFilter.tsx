@@ -10,7 +10,7 @@ export function ModeFilter({ enabled, onChange }: Props) {
   return (
     <section className="flex flex-col gap-1.5">
       <h2 className="text-[11px] font-medium uppercase tracking-wider text-neutral-500">
-        Mode
+        Show
       </h2>
       <ToggleGroup
         type="multiple"
