@@ -9,76 +9,102 @@ interface Props {
   theme: 'dark' | 'light'
 }
 
+// TransLink's rapid transit lines keep their GTFS-assigned brand colors in
+// the map output, so they need their own key row — otherwise users reading
+// the bus-frequency bands might think "yellow line" means "very frequent"
+// when it's actually the Millennium Line. The colors here mirror what's
+// shipped in routes.geojson.
+const RAPID_TRANSIT_KEYS: { name: string; color: string }[] = [
+  { name: 'Expo Line', color: '#0033a0' },
+  { name: 'Millennium Line', color: '#ffcd00' },
+  { name: 'Canada Line', color: '#007c9f' },
+  { name: 'SeaBus', color: '#746661' },
+  { name: 'West Coast Express', color: '#87189d' },
+]
+
 /**
- * Compact inline legend: a single row with band-colored swatches + threshold
- * values. Fits inside the bottom control strip at any viewport width and
- * replaces the old 7-row card. Dashed peak/night live as two small inline
- * chips; the "no service" state + "SkyTrain uses line colors" note live in
- * the About sheet, not here.
+ * Two-tier legend: the bus-frequency ramp on top, rapid transit brand colors
+ * below. The split is important — the app encodes two different axes on the
+ * map (how often does it run? vs what mode is it?) and users need both keys
+ * visible to parse the colors they're seeing.
  */
 export function Legend({ thresholds, theme }: Props) {
   const frequentMatchesFtn =
     thresholds.frequent === DEFAULT_THRESHOLDS.frequent
   const palette = bandColors(theme)
 
-  const bandStops = [
-    { value: thresholds.very_frequent, color: palette.very_frequent },
-    { value: thresholds.frequent, color: palette.frequent, ftn: frequentMatchesFtn },
-    { value: thresholds.standard, color: palette.standard },
-  ]
-
   return (
     <section
-      aria-label="Frequency legend"
-      className="flex flex-col gap-1.5 text-[11px] text-neutral-700 dark:text-neutral-300"
+      aria-label="Frequency and mode legend"
+      className="flex flex-col gap-2 text-[11px] text-neutral-700 dark:text-neutral-300"
     >
-      <h2 className="text-xs font-medium text-neutral-900 dark:text-neutral-100">
-        Frequency key
-      </h2>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        {/* Headway band swatches + "≤ N min" labels */}
-        {bandStops.map((stop, i) => (
-          <span key={i} className="flex items-center gap-1.5">
-            <span
-              aria-hidden="true"
-              className="inline-block h-[3px] w-5 rounded-full"
-              style={{ backgroundColor: stop.color }}
-            />
-            <span className="tabular-nums">
-              ≤{stop.value} min{stop.ftn ? ' (FTN)' : ''}
-            </span>
-          </span>
-        ))}
-        <span className="flex items-center gap-1.5">
-          <span
-            aria-hidden="true"
-            className="inline-block h-[3px] w-5 rounded-full"
-            style={{ backgroundColor: palette.infrequent }}
+      {/* Bus frequency key */}
+      <div className="flex flex-col gap-1">
+        <h2 className="text-xs font-medium text-neutral-900 dark:text-neutral-100">
+          Bus frequency
+        </h2>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <KeyRow
+            label={`≤${thresholds.very_frequent} min`}
+            color={palette.very_frequent}
           />
-          <span className="tabular-nums">&gt; {thresholds.standard} min</span>
-        </span>
-
-        {/* Dashed: peak + night */}
-        <span className="flex items-center gap-1.5">
-          <DashedSwatch color={palette.peak_only} />
-          <span>Peak only</span>
-        </span>
-        <span className="flex items-center gap-1.5">
-          <DashedSwatch color={palette.night_only} />
-          <span>Night only</span>
-        </span>
-
-        {/* No service */}
-        <span className="flex items-center gap-1.5">
-          <span
-            aria-hidden="true"
-            className="inline-block h-[3px] w-5 rounded-full opacity-50"
-            style={{ backgroundColor: NO_SERVICE_COLOR }}
+          <KeyRow
+            label={`≤${thresholds.frequent} min${frequentMatchesFtn ? ' (FTN)' : ''}`}
+            color={palette.frequent}
           />
-          <span>No service</span>
-        </span>
+          <KeyRow
+            label={`≤${thresholds.standard} min`}
+            color={palette.standard}
+          />
+          <KeyRow
+            label={`> ${thresholds.standard} min`}
+            color={palette.infrequent}
+          />
+          <KeyRow label="Peak only" color={palette.peak_only} dashed />
+          <KeyRow label="Night only" color={palette.night_only} dashed />
+          <KeyRow label="No service" color={NO_SERVICE_COLOR} dimmed />
+        </div>
+      </div>
+
+      {/* Rapid transit brand-color key */}
+      <div className="flex flex-col gap-1">
+        <h2 className="text-xs font-medium text-neutral-900 dark:text-neutral-100">
+          Rapid transit <span className="font-normal text-neutral-500">(line colors)</span>
+        </h2>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          {RAPID_TRANSIT_KEYS.map((line) => (
+            <KeyRow key={line.name} label={line.name} color={line.color} />
+          ))}
+        </div>
       </div>
     </section>
+  )
+}
+
+function KeyRow({
+  label,
+  color,
+  dashed,
+  dimmed,
+}: {
+  label: string
+  color: string
+  dashed?: boolean
+  dimmed?: boolean
+}) {
+  return (
+    <span className="flex items-center gap-1.5">
+      {dashed ? (
+        <DashedSwatch color={color} />
+      ) : (
+        <span
+          aria-hidden="true"
+          className="inline-block h-[3px] w-5 rounded-full"
+          style={{ backgroundColor: color, opacity: dimmed ? 0.5 : 1 }}
+        />
+      )}
+      <span className="tabular-nums">{label}</span>
+    </span>
   )
 }
 
