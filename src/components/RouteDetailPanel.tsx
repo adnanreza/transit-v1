@@ -119,7 +119,7 @@ export default function RouteDetailPanel({
             <>
               <div className="flex items-start gap-3">
                 <span
-                  className="flex h-11 min-w-11 items-center justify-center rounded-md px-2 font-mono text-base font-semibold text-neutral-950 shadow-sm"
+                  className="flex h-14 min-w-16 items-center justify-center rounded-md px-2.5 font-mono text-xl font-bold text-neutral-950 shadow-sm"
                   style={{
                     backgroundColor: badgeColor(
                       entry,
@@ -134,7 +134,7 @@ export default function RouteDetailPanel({
                 >
                   {entry.route_short_name}
                 </span>
-                <div className="min-w-0 flex-1 pt-0.5">
+                <div className="min-w-0 flex-1 pt-1">
                   <SheetTitle className="truncate text-base leading-tight">
                     {entry.route_long_name}
                   </SheetTitle>
