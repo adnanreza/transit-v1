@@ -40,6 +40,20 @@ interface RouteDetailPanelProps {
 // non-bus modes that keep their branded GTFS route_color in the UI.
 const BUS_ROUTE_TYPE = '3'
 
+// TransLink's rapid transit routes (Canada Line, Expo Line, Millennium Line,
+// SeaBus) have an empty route_short_name — only route_long_name. Fall back
+// to the initials of the long name so the badge isn't visually empty.
+function routeBadgeLabel(entry: RouteIndexEntry): string {
+  if (entry.route_short_name) return entry.route_short_name
+  const initials = entry.route_long_name
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => word[0])
+    .join('')
+    .toUpperCase()
+  return initials.slice(0, 3) || '—'
+}
+
 function badgeColor(
   entry: RouteIndexEntry,
   route: RouteFrequency,
@@ -130,9 +144,9 @@ export default function RouteDetailPanel({
                       theme,
                     ),
                   }}
-                  aria-label={`Route ${entry.route_short_name}`}
+                  aria-label={`Route ${entry.route_short_name || entry.route_long_name}`}
                 >
-                  {entry.route_short_name}
+                  {routeBadgeLabel(entry)}
                 </span>
                 <div className="min-w-0 flex-1 pt-1">
                   <SheetTitle className="truncate text-base leading-tight">
@@ -144,8 +158,11 @@ export default function RouteDetailPanel({
                 </div>
               </div>
               <SheetDescription id="route-detail-description" className="sr-only">
-                Frequency profile and FTN qualification for route{' '}
-                {entry.route_short_name}.
+                Frequency profile and FTN qualification for{' '}
+                {entry.route_short_name
+                  ? `route ${entry.route_short_name}`
+                  : entry.route_long_name}
+                .
               </SheetDescription>
             </>
           ) : (
