@@ -103,8 +103,39 @@ export default function App() {
           onBackgroundClick={() => setSelectedRouteId(null)}
         />
       </Suspense>
-      <footer className="pointer-events-none absolute inset-x-0 bottom-0 px-3 pb-1.5 text-[11px] leading-tight">
-        <div className="pointer-events-auto mx-auto flex max-w-5xl flex-wrap items-center justify-center gap-x-3 gap-y-0.5 text-neutral-600 dark:text-neutral-400">
+      <div className="pointer-events-none absolute top-3 left-3">
+        <RouteSearch
+          routes={routes.status === 'ready' ? routes.routes : null}
+          onSelect={(route) => {
+            if (aboutOpen) setAboutOpen(false)
+            setFocusRequest({ route, at: Date.now() })
+          }}
+        />
+      </div>
+      {/* Bottom bar — controls strip on top, footer underneath, stacked in a
+          single absolutely-positioned column so the footer can't get covered
+          by a tall controls card on narrow viewports. */}
+      <div className="pointer-events-none absolute inset-x-2 bottom-1.5 flex flex-col gap-1.5">
+        <div className="pointer-events-auto flex flex-wrap items-start gap-x-5 gap-y-3 rounded-md bg-white/85 px-4 py-3 text-xs text-neutral-800 shadow-lg ring-1 ring-black/10 backdrop-blur dark:bg-neutral-950/85 dark:text-neutral-200 dark:ring-white/10">
+          <FrequencyControls
+            day={day}
+            window={window}
+            onDayChange={setDay}
+            onWindowChange={setWindow}
+          />
+          <ModeFilter enabled={enabledModes} onChange={setEnabledModes} />
+          <div className="min-w-[14rem] flex-1">
+            <ThresholdSlider
+              thresholds={thresholds}
+              theme={resolvedTheme}
+              onChange={setThresholds}
+            />
+          </div>
+          <div className="min-w-[12rem] flex-1">
+            <Legend thresholds={thresholds} theme={resolvedTheme} />
+          </div>
+        </div>
+        <footer className="pointer-events-auto mx-auto flex max-w-5xl flex-wrap items-center justify-center gap-x-3 gap-y-0.5 px-2 text-[11px] leading-tight text-neutral-600 dark:text-neutral-400">
           <span>
             Route data provided by permission of{' '}
             <a
@@ -139,40 +170,11 @@ export default function App() {
               MIT
             </a>
           </span>
-        </div>
-      </footer>
-      <div className="pointer-events-none absolute top-3 left-3">
-        <RouteSearch
-          routes={routes.status === 'ready' ? routes.routes : null}
-          onSelect={(route) => {
-            if (aboutOpen) setAboutOpen(false)
-            setFocusRequest({ route, at: Date.now() })
-          }}
-        />
-      </div>
-      <div className="pointer-events-none absolute bottom-8 left-3">
-        <div className="pointer-events-auto flex w-72 flex-col gap-4 rounded-md bg-white/80 p-3 text-xs text-neutral-700 shadow-lg ring-1 ring-black/10 backdrop-blur dark:bg-neutral-950/80 dark:text-neutral-300 dark:ring-white/10">
-          <FrequencyControls
-            day={day}
-            window={window}
-            onDayChange={setDay}
-            onWindowChange={setWindow}
-          />
-          <div className="border-t border-black/5 dark:border-white/5" />
-          <ModeFilter enabled={enabledModes} onChange={setEnabledModes} />
-          <ThresholdSlider
-            thresholds={thresholds}
-            theme={resolvedTheme}
-            onChange={setThresholds}
-          />
-        </div>
+        </footer>
       </div>
       <div className="pointer-events-none absolute top-3 right-3 flex items-center gap-2">
         <AboutButton onClick={openAbout} />
         <ThemeToggle pref={themePref} onChange={setThemePref} />
-      </div>
-      <div className="pointer-events-none absolute bottom-12 right-3">
-        <Legend thresholds={thresholds} theme={resolvedTheme} />
       </div>
       <Suspense fallback={null}>
         <RouteDetailPanel

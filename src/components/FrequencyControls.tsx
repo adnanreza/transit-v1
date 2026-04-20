@@ -67,6 +67,9 @@ export function FrequencyControls({
           }}
           variant="outline"
           size="sm"
+          // Six items + narrow viewports → allow wrapping instead of clipping
+          // "Late night" off the right edge.
+          className="flex-wrap"
         >
           {WINDOW_OPTIONS.map((o) => (
             <ToggleGroupItem key={o.value} value={o.value} aria-label={o.label}>
