@@ -1,5 +1,6 @@
 import {
   CartesianGrid,
+  Label,
   Line,
   LineChart,
   ReferenceLine,
@@ -19,6 +20,11 @@ import type {
 } from '../../scripts/types/frequencies'
 
 const FTN_THRESHOLD_MIN = 15
+// Fixed y-axis floor. `maxSeriesHeadway`'s default is 30, which makes the
+// 15-min FTN line sit at the middle (top half = "more frequent than FTN",
+// bottom half = "below FTN"). Letting the auto-scale go lower collapses the
+// data onto the top edge and the chart reads as empty.
+const Y_AXIS_FLOOR = 45
 const DAY_ORDER: { day: DayType; label: string }[] = [
   { day: 'weekday', label: 'Weekday' },
   { day: 'saturday', label: 'Saturday' },
@@ -49,16 +55,16 @@ export function RouteFrequencyChart({ route }: Props) {
     label,
     data: hourlyChartSeries(route, day),
   }))
-  // Shared y-max so the three multiples are visually comparable; floor at 30
-  // so routes with only sub-30-min headways still have room above the 15-min
-  // reference line and don't read as a pancake.
-  const yMax = maxSeriesHeadway(series.map((s) => s.data))
+  // Shared y-max so the three multiples are visually comparable. Floor at 45
+  // min gives the 15-min FTN line a middle-of-the-chart anchor regardless of
+  // how frequent the route actually is.
+  const yMax = maxSeriesHeadway(series.map((s) => s.data), Y_AXIS_FLOOR)
 
   return (
     <section aria-labelledby="route-detail-chart" className="flex flex-col gap-3">
       <h3
         id="route-detail-chart"
-        className="text-[11px] font-medium uppercase tracking-wider text-neutral-500"
+        className="text-xs font-medium text-neutral-900 dark:text-neutral-100"
       >
         24-hour headway
       </h3>
@@ -68,8 +74,8 @@ export function RouteFrequencyChart({ route }: Props) {
         ))}
       </div>
       <p className="text-[11px] text-neutral-500">
-        Headway in minutes. Lower bars = more frequent. Dashed line marks the
-        15-min FTN threshold.
+        Headway in minutes at each hour of day. The dashed line is the 15-min
+        FTN threshold — values above the line qualify that hour for FTN.
       </p>
     </section>
   )
@@ -89,7 +95,7 @@ function DayMultiple({ label, data, yMax }: DayMultipleProps) {
       </figcaption>
       <div className="h-24 w-full">
         <ResponsiveContainer>
-          <LineChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+          <LineChart data={data} margin={{ top: 4, right: 32, left: 0, bottom: 0 }}>
             <CartesianGrid stroke="#ffffff10" vertical={false} />
             <XAxis
               dataKey="hour"
@@ -105,6 +111,7 @@ function DayMultiple({ label, data, yMax }: DayMultipleProps) {
               // Inverted domain: headway 0 is visually at the top, yMax at the
               // bottom — so "more frequent" reads as higher on the plot.
               domain={[yMax, 0]}
+              ticks={[0, 15, 30, yMax]}
               tickFormatter={(v: number) => `${v}`}
               stroke="#737373"
               tick={{ fontSize: 10, fill: '#a3a3a3' }}
@@ -115,7 +122,16 @@ function DayMultiple({ label, data, yMax }: DayMultipleProps) {
               stroke="#fbbf24"
               strokeDasharray="3 3"
               strokeWidth={1}
-            />
+            >
+              <Label
+                value="15 min"
+                position="insideRight"
+                offset={2}
+                fill="#fbbf24"
+                fontSize={10}
+                fontWeight={500}
+              />
+            </ReferenceLine>
             <Tooltip
               cursor={{ stroke: '#ffffff30' }}
               contentStyle={{
@@ -124,7 +140,10 @@ function DayMultiple({ label, data, yMax }: DayMultipleProps) {
                 borderRadius: 6,
                 fontSize: 11,
                 padding: '4px 8px',
+                color: '#fafafa',
               }}
+              labelStyle={{ color: '#fafafa' }}
+              itemStyle={{ color: '#fafafa' }}
               labelFormatter={(hour) =>
                 typeof hour === 'number' ? formatHour(hour) : ''
               }
