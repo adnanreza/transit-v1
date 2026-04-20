@@ -1,4 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { AboutButton } from '@/components/AboutButton'
+import { AboutSheet } from '@/components/AboutSheet'
 import { FrequencyControls } from '@/components/FrequencyControls'
 import { Legend } from '@/components/Legend'
 import { ModeFilter } from '@/components/ModeFilter'
@@ -51,6 +53,7 @@ export default function App() {
   const resolvedTheme = useResolvedTheme()
   const [selectedRouteId, setSelectedRouteId] = useSelectedRoute()
   const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null)
+  const [aboutOpen, setAboutOpen] = useState(false)
   const routes = useRoutes()
 
   // Initial ?route=<id> → pan to bbox once routes load. Later clicks don't
@@ -150,7 +153,8 @@ export default function App() {
           onWindowChange={setWindow}
         />
       </div>
-      <div className="pointer-events-none absolute top-3 right-3">
+      <div className="pointer-events-none absolute top-3 right-3 flex items-center gap-2">
+        <AboutButton onClick={() => setAboutOpen(true)} />
         <ThemeToggle pref={themePref} onChange={setThemePref} />
       </div>
       <div className="pointer-events-none absolute bottom-12 right-3">
@@ -170,6 +174,7 @@ export default function App() {
           onClose={() => setSelectedRouteId(null)}
         />
       </Suspense>
+      <AboutSheet open={aboutOpen} onOpenChange={setAboutOpen} />
     </div>
   )
 }
