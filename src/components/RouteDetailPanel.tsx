@@ -220,15 +220,15 @@ function FtnStatus({
     <section aria-labelledby="route-detail-ftn" className="flex flex-col gap-1">
       <h3
         id="route-detail-ftn"
-        className="text-[11px] font-medium uppercase tracking-wider text-neutral-500"
+        className="text-xs font-medium text-neutral-900 dark:text-neutral-100"
       >
         Frequent Transit Network
       </h3>
       <p
         className={
           qualifies
-            ? 'flex items-center gap-2 text-base font-medium text-emerald-400'
-            : 'flex items-center gap-2 text-base font-medium text-neutral-800 dark:text-neutral-200'
+            ? 'flex items-center gap-2 text-base font-medium text-emerald-600 dark:text-emerald-400'
+            : 'flex items-center gap-2 text-base font-medium text-amber-600 dark:text-amber-400'
         }
       >
         <span aria-hidden="true" className="text-lg leading-none">
