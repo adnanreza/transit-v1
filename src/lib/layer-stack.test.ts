@@ -3,6 +3,7 @@ import { isTransitLayerOrderValid } from './layer-stack'
 
 const STACK = [
   'stops-circles',
+  'routes-lines-rapid-casing',
   'routes-lines-dashed',
   'routes-lines-solid',
   'routes-lines-selected',
@@ -14,6 +15,7 @@ describe('isTransitLayerOrderValid', () => {
       'base-land',
       'base-water',
       'stops-circles',
+      'routes-lines-rapid-casing',
       'routes-lines-dashed',
       'routes-lines-solid',
       'routes-lines-selected',
@@ -27,6 +29,8 @@ describe('isTransitLayerOrderValid', () => {
     const style = [
       'stops-circles',
       'base-labels',
+      'routes-lines-rapid-casing',
+      'base-water-labels',
       'routes-lines-dashed',
       'base-pois',
       'routes-lines-solid',
@@ -44,8 +48,20 @@ describe('isTransitLayerOrderValid', () => {
     expect(isTransitLayerOrderValid(style, STACK)).toBe(false)
   })
 
+  it('returns false when the casing lands above a route layer', () => {
+    const style = [
+      'stops-circles',
+      'routes-lines-dashed',
+      'routes-lines-rapid-casing',
+      'routes-lines-solid',
+      'routes-lines-selected',
+    ]
+    expect(isTransitLayerOrderValid(style, STACK)).toBe(false)
+  })
+
   it('returns false when the stops layer ends up above a route layer', () => {
     const style = [
+      'routes-lines-rapid-casing',
       'routes-lines-dashed',
       'stops-circles',
       'routes-lines-solid',
@@ -57,6 +73,7 @@ describe('isTransitLayerOrderValid', () => {
   it('returns false when the selected overlay lands below the route it overlays', () => {
     const style = [
       'stops-circles',
+      'routes-lines-rapid-casing',
       'routes-lines-selected',
       'routes-lines-dashed',
       'routes-lines-solid',
