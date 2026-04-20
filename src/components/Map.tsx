@@ -387,6 +387,10 @@ export function Map({
       style: buildMapStyle(getPmtilesUrl(), theme),
       center: view.center,
       zoom: view.zoom,
+      // Our footer carries both OSM + TransLink attribution; MapLibre's
+      // built-in "MapLibre | © OpenStreetMap" badge is redundant and
+      // visually competes with the footer for the same credit.
+      attributionControl: false,
     })
     mapRef.current = map
 
