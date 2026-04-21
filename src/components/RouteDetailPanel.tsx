@@ -12,6 +12,7 @@ import { bandLabel } from '@/lib/band-label'
 import { formatFtnFailure } from '@/lib/ftn-format'
 import { routeBandAt, type BandThresholds } from '@/lib/route-band'
 import { hourlyChartSeries } from '@/lib/route-chart'
+import { displayShortName } from '@/lib/route-search'
 import {
   countMinorPatterns,
   majorPatternsSorted,
@@ -44,7 +45,7 @@ const BUS_ROUTE_TYPE = '3'
 // SeaBus) have an empty route_short_name — only route_long_name. Fall back
 // to the initials of the long name so the badge isn't visually empty.
 function routeBadgeLabel(entry: RouteIndexEntry): string {
-  if (entry.route_short_name) return entry.route_short_name
+  if (entry.route_short_name) return displayShortName(entry.route_short_name)
   const initials = entry.route_long_name
     .split(/\s+/)
     .filter(Boolean)
@@ -144,7 +145,7 @@ export default function RouteDetailPanel({
                       theme,
                     ),
                   }}
-                  aria-label={`Route ${entry.route_short_name || entry.route_long_name}`}
+                  aria-label={`Route ${entry.route_short_name ? displayShortName(entry.route_short_name) : entry.route_long_name}`}
                 >
                   {routeBadgeLabel(entry)}
                 </span>
@@ -160,7 +161,7 @@ export default function RouteDetailPanel({
               <SheetDescription id="route-detail-description" className="sr-only">
                 Frequency profile and FTN qualification for{' '}
                 {entry.route_short_name
-                  ? `route ${entry.route_short_name}`
+                  ? `route ${displayShortName(entry.route_short_name)}`
                   : entry.route_long_name}
                 .
               </SheetDescription>

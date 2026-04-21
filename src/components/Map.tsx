@@ -15,6 +15,7 @@ import { bandLabel } from '@/lib/band-label'
 import { isTransitLayerOrderValid } from '@/lib/layer-stack'
 import { modeFilterExpression, type Mode } from '@/lib/modes'
 import { routeBandAt, type BandThresholds } from '@/lib/route-band'
+import { displayShortName } from '@/lib/route-search'
 import { viewsDiffer, type MapView } from '@/lib/url-state'
 import { RouteTooltip } from '@/components/RouteTooltip'
 import type { FocusRequest } from '@/App'
@@ -505,7 +506,10 @@ export function Map({
       map.getCanvas().style.cursor = 'pointer'
       setHover({
         routeId,
-        shortName: typeof p.route_short_name === 'string' ? p.route_short_name : '',
+        shortName:
+          typeof p.route_short_name === 'string'
+            ? displayShortName(p.route_short_name)
+            : '',
         longName: typeof p.route_long_name === 'string' ? p.route_long_name : '',
         x: e.point.x,
         y: e.point.y,

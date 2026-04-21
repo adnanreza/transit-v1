@@ -9,7 +9,7 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command'
-import { matchRouteQuery } from '@/lib/route-search'
+import { displayShortName, matchRouteQuery } from '@/lib/route-search'
 import type { RouteIndexEntry } from '@/lib/use-routes'
 
 interface Props {
@@ -88,7 +88,7 @@ export function RouteSearch({ routes, onSelect }: Props) {
                     }}
                   >
                     <span className="font-medium tabular-nums">
-                      {route.route_short_name}
+                      {displayShortName(route.route_short_name)}
                     </span>
                     <span className="truncate text-muted-foreground">
                       {route.route_long_name}
