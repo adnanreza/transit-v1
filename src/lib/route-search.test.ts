@@ -48,6 +48,24 @@ describe('matchRouteQuery', () => {
     expect(matchRouteQuery('', r)).toBe(true)
     expect(matchRouteQuery('   ', r)).toBe(true)
   })
+
+  it('matches a GTFS zero-padded short name from either side', () => {
+    const r99padded = route('7', '099', 'Commercial-Broadway/UBC (B-Line)')
+    expect(matchRouteQuery('99', r99padded)).toBe(true)
+    expect(matchRouteQuery('099', r99padded)).toBe(true)
+    const r4padded = route('8', '004', 'Powell/Downtown/UBC')
+    expect(matchRouteQuery('4', r4padded)).toBe(true)
+    expect(matchRouteQuery('04', r4padded)).toBe(true)
+    expect(matchRouteQuery('004', r4padded)).toBe(true)
+  })
+
+  it('does not strip zeros from alphanumeric tokens', () => {
+    const n10 = route('9', 'N10', 'Night Bus')
+    expect(matchRouteQuery('N10', n10)).toBe(true)
+    // "N01" should not silently match N10 (the zero sits inside an
+    // alphanumeric token, not an all-digit one).
+    expect(matchRouteQuery('N01', n10)).toBe(false)
+  })
 })
 
 describe('displayShortName', () => {

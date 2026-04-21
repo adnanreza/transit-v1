@@ -13,8 +13,19 @@ export interface SearchableRoute {
   route_long_name: string
 }
 
+// Strip GTFS-style leading-zero padding from all-digit tokens so "99" and
+// "099" collapse to the same search key. Non-digit tokens (r5, ubc, n10)
+// are untouched — leading zeros only have this cosmetic role in the
+// all-numeric route-number space.
+function stripNumericPad(token: string): string {
+  if (!/^\d+$/.test(token)) return token
+  const trimmed = token.replace(/^0+/, '')
+  return trimmed.length === 0 ? '0' : trimmed
+}
+
 function normalize(value: string): string {
-  return value.toLowerCase().replace(/[\s-]+/g, '')
+  const collapsed = value.toLowerCase().replace(/[\s-]+/g, '')
+  return stripNumericPad(collapsed)
 }
 
 export function matchRouteQuery(
