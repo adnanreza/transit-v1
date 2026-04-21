@@ -31,6 +31,7 @@ export function parseAgencies(csv: string): AgencyRecord[] {
 
 export interface StopRecord {
   stop_id: string
+  stop_code: string
   stop_name: string
   stop_lat: number
   stop_lon: number
@@ -75,6 +76,7 @@ export function parseStops(csv: string): StopRecord[] {
     })
     .map((r) => ({
       stop_id: r.stop_id,
+      stop_code: r.stop_code ?? '',
       stop_name: r.stop_name ?? '',
       stop_lat: parseFloat(r.stop_lat),
       stop_lon: parseFloat(r.stop_lon),
@@ -86,7 +88,7 @@ export function parseStops(csv: string): StopRecord[] {
 export interface StopFeature {
   type: 'Feature'
   geometry: { type: 'Point'; coordinates: [number, number] }
-  properties: { stop_id: string; stop_name: string }
+  properties: { stop_id: string; stop_code: string; stop_name: string }
 }
 
 export interface StopFeatureCollection {
@@ -100,7 +102,11 @@ export function stopsToGeoJSON(stops: StopRecord[]): StopFeatureCollection {
     features: stops.map((s) => ({
       type: 'Feature',
       geometry: { type: 'Point', coordinates: [s.stop_lon, s.stop_lat] },
-      properties: { stop_id: s.stop_id, stop_name: s.stop_name },
+      properties: {
+        stop_id: s.stop_id,
+        stop_code: s.stop_code,
+        stop_name: s.stop_name,
+      },
     })),
   }
 }

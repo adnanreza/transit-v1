@@ -106,6 +106,7 @@ export default function App() {
       <div className="pointer-events-none absolute top-3 left-3">
         <RouteSearch
           routes={routes.status === 'ready' ? routes.routes : null}
+          frequencies={frequencies.status === 'ready' ? frequencies.data : null}
           onSelect={(route) => {
             if (aboutOpen) setAboutOpen(false)
             setFocusRequest({ route, at: Date.now() })
