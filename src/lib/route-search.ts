@@ -27,3 +27,18 @@ export function matchRouteQuery(
   const long = normalize(route.route_long_name)
   return short.includes(q) || long.includes(q)
 }
+
+/**
+ * Strip GTFS leading-zero padding from all-numeric short names so riders
+ * see the number on the bus: "099" → "99", "004" → "4". Non-numeric short
+ * names (R4, N10, C23) pass through unchanged. A literal "0" stays "0".
+ *
+ * This is a display transform only — route_id, GeoJSON properties, and
+ * search matching keep the raw padded form.
+ */
+export function displayShortName(short: string): string {
+  if (short.length === 0) return short
+  if (!/^\d+$/.test(short)) return short
+  const trimmed = short.replace(/^0+/, '')
+  return trimmed.length === 0 ? '0' : trimmed
+}

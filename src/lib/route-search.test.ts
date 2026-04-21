@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { matchRouteQuery, type SearchableRoute } from './route-search'
+import {
+  displayShortName,
+  matchRouteQuery,
+  type SearchableRoute,
+} from './route-search'
 
 function route(
   route_id: string,
@@ -43,5 +47,26 @@ describe('matchRouteQuery', () => {
     const r = route('6', '99', 'Commercial-Broadway')
     expect(matchRouteQuery('', r)).toBe(true)
     expect(matchRouteQuery('   ', r)).toBe(true)
+  })
+})
+
+describe('displayShortName', () => {
+  it('strips leading zeros from all-numeric GTFS short names', () => {
+    expect(displayShortName('099')).toBe('99')
+    expect(displayShortName('004')).toBe('4')
+    expect(displayShortName('016')).toBe('16')
+    expect(displayShortName('123')).toBe('123')
+  })
+
+  it('leaves non-numeric short names unchanged', () => {
+    expect(displayShortName('R4')).toBe('R4')
+    expect(displayShortName('N10')).toBe('N10')
+    expect(displayShortName('C23')).toBe('C23')
+  })
+
+  it('preserves a literal zero and handles the empty string', () => {
+    expect(displayShortName('0')).toBe('0')
+    expect(displayShortName('00')).toBe('0')
+    expect(displayShortName('')).toBe('')
   })
 })
