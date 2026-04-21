@@ -16,6 +16,9 @@ import { isTransitLayerOrderValid } from '@/lib/layer-stack'
 import { modeFilterExpression, type Mode } from '@/lib/modes'
 import { routeBandAt, type BandThresholds } from '@/lib/route-band'
 import { displayShortName } from '@/lib/route-search'
+import { useStopRoutesIndex } from '@/lib/stop-routes'
+import { StopPopup } from '@/components/StopPopup'
+import { useRoutes } from '@/lib/use-routes'
 import { viewsDiffer, type MapView } from '@/lib/url-state'
 import { RouteTooltip } from '@/components/RouteTooltip'
 import type { FocusRequest } from '@/App'
@@ -412,6 +415,14 @@ interface HoverState {
   y: number
 }
 
+interface StopPopupState {
+  stopId: string
+  stopName: string
+  stopCode: string
+  lng: number
+  lat: number
+}
+
 export function Map({
   day,
   window,
@@ -428,7 +439,29 @@ export function Map({
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const frequencies = useFrequencies()
+  const routes = useRoutes()
   const [hover, setHover] = useState<HoverState | null>(null)
+  const [stopPopup, setStopPopup] = useState<StopPopupState | null>(null)
+  const [stopPopupScreen, setStopPopupScreen] = useState<{
+    x: number
+    y: number
+  } | null>(null)
+  const stopRoutesIndex = useStopRoutesIndex(stopPopup !== null)
+  const stopPopupRef = useRef(stopPopup)
+
+  // Mirror the latest stopPopup into a ref so map-event handlers (registered
+  // once at init) always see the current value without re-registering.
+  useEffect(() => {
+    stopPopupRef.current = stopPopup
+  }, [stopPopup])
+
+  // A stop popup and a route-detail sheet shouldn't coexist — selecting a
+  // route (including by clicking a badge in the popup) closes the popup.
+  useEffect(() => {
+    // Syncing local popup state to an external selection signal.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (selectedRouteId) setStopPopup(null)
+  }, [selectedRouteId])
 
   // Stash the latest writers + the last view we applied so the map-event
   // handlers (registered once at init) always see the current React values
@@ -474,22 +507,67 @@ export function Map({
     }
     map.on('moveend', handleMoveEnd)
 
-    // Single click handler: a hit on a rendered route layer selects that
-    // route; anything else (base map, stop, water) is treated as a background
-    // click so the panel can close. queryRenderedFeatures respects layer
-    // filters, so mode-hidden routes are already excluded.
+    // Click hit-priority: a rendered route layer wins first, so clicking a
+    // route line that runs past a stop still opens the route panel (continues
+    // feature 09's convention). If no route is under the cursor, fall through
+    // to the stops layer and open the stop popup. Only if neither hits does
+    // this become a background click.
     const handleClick = (e: maplibregl.MapMouseEvent) => {
-      const features = map.queryRenderedFeatures(e.point, {
+      const routeHits = map.queryRenderedFeatures(e.point, {
         layers: [...ROUTE_LAYER_IDS],
       })
-      const routeId = features[0]?.properties?.route_id
+      const routeId = routeHits[0]?.properties?.route_id
       if (typeof routeId === 'string' && routeId.length > 0) {
+        setStopPopup(null)
         onRouteSelectRef.current(routeId)
-      } else {
-        onBackgroundClickRef.current()
+        return
       }
+      const stopHits = map.getLayer(STOPS_LAYER_ID)
+        ? map.queryRenderedFeatures(e.point, { layers: [STOPS_LAYER_ID] })
+        : []
+      const stopFeature = stopHits[0]
+      if (stopFeature && stopFeature.geometry.type === 'Point') {
+        const p = stopFeature.properties ?? {}
+        const stopId = typeof p.stop_id === 'string' ? p.stop_id : ''
+        if (stopId) {
+          const [lng, lat] = stopFeature.geometry.coordinates as [
+            number,
+            number,
+          ]
+          setStopPopup({
+            stopId,
+            stopName: typeof p.stop_name === 'string' ? p.stop_name : 'Stop',
+            stopCode: typeof p.stop_code === 'string' ? p.stop_code : '',
+            lng,
+            lat,
+          })
+          setStopPopupScreen({ x: e.point.x, y: e.point.y })
+          return
+        }
+      }
+      setStopPopup(null)
+      onBackgroundClickRef.current()
     }
     map.on('click', handleClick)
+
+    // Reproject the popup anchor as the map pans or zooms so the popup
+    // stays glued to its stop. If the stop scrolls out of the padded
+    // viewport, close the popup — mirrors Google/Apple Maps behavior and
+    // avoids arrow-only popups hanging off the map edges.
+    const handleMapMove = () => {
+      const current = stopPopupRef.current
+      if (!current) return
+      const pt = map.project([current.lng, current.lat])
+      const { clientWidth: w, clientHeight: h } = map.getContainer()
+      const pad = 48
+      if (pt.x < -pad || pt.x > w + pad || pt.y < -pad || pt.y > h + pad) {
+        setStopPopup(null)
+        setStopPopupScreen(null)
+        return
+      }
+      setStopPopupScreen({ x: pt.x, y: pt.y })
+    }
+    map.on('move', handleMapMove)
 
     // Hover: only register on devices that actually support a hover cursor.
     // Touch-only browsers still fire mousemove during pan gestures, which
@@ -544,6 +622,7 @@ export function Map({
     return () => {
       map.off('moveend', handleMoveEnd)
       map.off('click', handleClick)
+      map.off('move', handleMapMove)
       if (supportsHover) {
         map.off('mousemove', handleMouseMove)
         map.off('mouseout', handleMouseLeave)
@@ -727,6 +806,22 @@ export function Map({
           shortName={visibleHover.shortName}
           longName={visibleHover.longName}
           bandLabel={tooltipBandLabel}
+        />
+      )}
+      {stopPopup && stopPopupScreen && (
+        <StopPopup
+          x={stopPopupScreen.x}
+          y={stopPopupScreen.y}
+          stopName={stopPopup.stopName}
+          stopCode={stopPopup.stopCode}
+          stopId={stopPopup.stopId}
+          stopRoutesState={stopRoutesIndex}
+          routes={routes.status === 'ready' ? routes.routes : null}
+          onRouteSelect={(routeId) => {
+            setStopPopup(null)
+            onRouteSelect(routeId)
+          }}
+          onClose={() => setStopPopup(null)}
         />
       )}
     </div>
