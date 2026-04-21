@@ -169,13 +169,17 @@ function composeFilter(
 }
 
 // Radius grows with zoom so stops read as anchor points at street zoom
-// without dominating the view as soon as they become visible. Below z13 the
-// stops layer is hidden entirely — at network-overview zooms the colored
-// route lines tell the FTN story, and ~9k dots would just add noise.
+// without dominating the view as soon as they become visible. At z11 stops
+// come in as tiny specks — enough to ground the map with physical anchor
+// points without swamping the color-coded route lines. Below z11 the stops
+// layer is hidden entirely: at network-overview zooms the colored route
+// lines tell the FTN story, and ~9k dots would just add noise.
 const stopCircleRadius: ExpressionSpecification = [
   'interpolate',
   ['linear'],
   ['zoom'],
+  11,
+  0.75,
   13,
   1.5,
   15,
@@ -213,13 +217,24 @@ function addStopsLayer(map: maplibregl.Map, theme: 'dark' | 'light') {
     id: STOPS_LAYER_ID,
     type: 'circle',
     source: 'stops',
-    minzoom: 13,
+    minzoom: 11,
     paint: {
       'circle-color': STOP_FILL[theme],
       'circle-opacity': 0.85,
       'circle-radius': stopCircleRadius,
       'circle-stroke-color': STOP_STROKE[theme],
-      'circle-stroke-width': 1,
+      // No stroke below z13 — at z11–12 the dots are under 1.5 px and a
+      // 1 px outline would dominate the fill, smudging stops into a halo
+      // instead of reading as discrete points.
+      'circle-stroke-width': [
+        'interpolate',
+        ['linear'],
+        ['zoom'],
+        11,
+        0,
+        13,
+        1,
+      ],
     },
   })
 }
