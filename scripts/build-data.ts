@@ -36,6 +36,7 @@ import {
   type PatternTimes,
 } from './lib/headways.ts'
 import { patternBandAndFtn, routeBandFromPatterns } from './lib/ftn.ts'
+import { buildStopRoutesIndex } from './lib/stop-routes.ts'
 import type {
   Band,
   DayType,
@@ -375,6 +376,20 @@ async function main() {
   const routesSize = fs.statSync(path.join(DATA_DIR, 'routes.geojson')).size
   console.log(
     `Wrote public/data/routes.geojson (${routesSimplified.features.length} features, ${fmtBytes(routesSize)})`,
+  )
+
+  // Stop → routes reverse index for the map's stop-click popup. Built from
+  // the already-computed pattern summaries; no extra stop_times pass needed.
+  const stopRoutesIndex = buildStopRoutesIndex(patterns.values(), routes)
+  fs.writeFileSync(
+    path.join(DATA_DIR, 'stop-routes.json'),
+    JSON.stringify(stopRoutesIndex),
+  )
+  const stopRoutesSize = fs.statSync(
+    path.join(DATA_DIR, 'stop-routes.json'),
+  ).size
+  console.log(
+    `Wrote public/data/stop-routes.json (${Object.keys(stopRoutesIndex).length} stops, ${fmtBytes(stopRoutesSize)})`,
   )
 
   const meta: Meta = {
