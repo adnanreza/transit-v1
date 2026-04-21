@@ -1,4 +1,4 @@
-import { layers, namedTheme } from 'protomaps-themes-base'
+import { labels, layers, namedTheme } from 'protomaps-themes-base'
 import type { StyleSpecification } from 'maplibre-gl'
 
 // Local extract of Protomaps' daily build, scoped to the Metro Vancouver bbox,
@@ -15,6 +15,11 @@ export function getPmtilesUrl(): string {
 // paint ramp — 'dark' keeps the original colored-routes-on-muted-slate look;
 // 'light' is used by the light-mode toggle (feature 12). Label fonts are
 // loaded from Protomaps' public glyph endpoint; they can be self-hosted later.
+//
+// `layers()` and `labels()` are split in protomaps-themes-base v4+ — the
+// former emits fill/line paint, the latter emits symbol layers. We merge
+// both so street and place names render; transit layers get added above
+// these by Map.tsx so colored route lines always sit on top.
 export function buildMapStyle(
   pmtilesUrl: string,
   theme: 'dark' | 'light' = 'dark',
@@ -29,6 +34,9 @@ export function buildMapStyle(
         attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       },
     },
-    layers: layers('protomaps', namedTheme(theme)),
+    layers: [
+      ...layers('protomaps', namedTheme(theme)),
+      ...labels('protomaps', theme, 'en', 'Latin'),
+    ],
   }
 }

@@ -30,4 +30,15 @@ describe('buildMapStyle', () => {
     expect(style.version).toBe(8)
     expect(style.layers.length).toBeGreaterThan(0)
   })
+
+  it('includes symbol label layers so street and place names render', () => {
+    const style = buildMapStyle('/data/basemap.pmtiles')
+    const symbolLayers = style.layers.filter((l) => l.type === 'symbol')
+    expect(symbolLayers.length).toBeGreaterThan(0)
+    // The major-roads label layer should be there so street names show up
+    // at mid zooms — the specific id is an API contract of
+    // `protomaps-themes-base` v4.
+    const roadLabels = symbolLayers.find((l) => l.id === 'roads_labels_major')
+    expect(roadLabels).toBeDefined()
+  })
 })
