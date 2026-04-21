@@ -7,6 +7,7 @@ import {
   parseStops,
   parseTrips,
   shapesToRouteGeoJSON,
+  stopsToGeoJSON,
   type RouteRecord,
   type ShapePoint,
 } from './gtfs.ts'
@@ -91,6 +92,48 @@ describe('parseStops', () => {
     const stops = parseStops(csv)
     expect(stops.map((s) => s.stop_id)).toEqual(['1', '2'])
     expect(stops[0].stop_lat).toBeCloseTo(49.28, 2)
+  })
+
+  it('carries stop_code through when present and falls back to empty string', () => {
+    const csv =
+      'stop_id,stop_code,stop_name,stop_lat,stop_lon,location_type\n' +
+      '1,50123,Main & 1st,49.28,-123.11,0\n' +
+      '2,,Main & 2nd,49.29,-123.12,0\n'
+    const stops = parseStops(csv)
+    expect(stops[0].stop_code).toBe('50123')
+    expect(stops[1].stop_code).toBe('')
+  })
+
+  it('tolerates a GTFS feed without the optional stop_code column', () => {
+    const csv =
+      'stop_id,stop_name,stop_lat,stop_lon,location_type\n' +
+      '1,Main & 1st,49.28,-123.11,0\n'
+    const stops = parseStops(csv)
+    expect(stops[0].stop_code).toBe('')
+  })
+})
+
+describe('stopsToGeoJSON', () => {
+  it('emits Point features with stop_id, stop_code, and stop_name in properties', () => {
+    const fc = stopsToGeoJSON([
+      {
+        stop_id: '1',
+        stop_code: '50123',
+        stop_name: 'Main & 1st',
+        stop_lat: 49.28,
+        stop_lon: -123.11,
+        location_type: '0',
+      },
+    ])
+    expect(fc.type).toBe('FeatureCollection')
+    expect(fc.features).toHaveLength(1)
+    const f = fc.features[0]
+    expect(f.geometry.coordinates).toEqual([-123.11, 49.28])
+    expect(f.properties).toEqual({
+      stop_id: '1',
+      stop_code: '50123',
+      stop_name: 'Main & 1st',
+    })
   })
 })
 
