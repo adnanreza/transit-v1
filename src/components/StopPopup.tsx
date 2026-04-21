@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { displayShortName } from '@/lib/route-search'
 import type { RouteIndexEntry } from '@/lib/use-routes'
 import type { UseStopRoutesState } from '@/lib/stop-routes'
@@ -47,6 +48,16 @@ export function StopPopup({
   const routesById = routes
     ? new Map(routes.map((r) => [r.route_id, r]))
     : null
+
+  // Escape closes the popup — standard for a dismissible dialog and keeps
+  // keyboard-only users from being stuck if the × button isn't focused.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
 
   return (
     <div
