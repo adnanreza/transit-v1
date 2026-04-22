@@ -2,31 +2,31 @@
 
 ## Status
 
-In Progress
+Complete
 
 ## Goals
 
 ### Listener-ordering fix
 
-- [ ] In `src/components/Map.tsx`, attach `map.once('style.load', …)` **before** calling `map.setStyle(...)`. MapLibre fires `style.load` synchronously during `setStyle` for this swap path, so a post-`setStyle` registration misses the dispatch and the reinstall callback never runs.
-- [ ] Keep `setStyle(…, { diff: true })` — the bug is listener ordering, not the event.
-- [ ] `addRouteLayers`'s `if (map.getLayer('routes-lines-solid')) return` guard stays; with the ordering fixed it correctly sees the emptied style and proceeds.
-- [ ] Do not add an `isStyleLoaded()` guard inside the handler. The flag is transiently `false` when `style.load` fires for this swap — a naive guard would suppress the only emission we get.
+- [x] In `src/components/Map.tsx`, attach `map.once('style.load', …)` **before** calling `map.setStyle(...)`. MapLibre fires `style.load` synchronously during `setStyle` for this swap path, so a post-`setStyle` registration misses the dispatch and the reinstall callback never runs.
+- [x] Keep `setStyle(…, { diff: true })` — the bug is listener ordering, not the event.
+- [x] `addRouteLayers`'s `if (map.getLayer('routes-lines-solid')) return` guard stays; with the ordering fixed it correctly sees the emptied style and proceeds.
+- [x] Do not add an `isStyleLoaded()` guard inside the handler. The flag is transiently `false` when `style.load` fires for this swap — a naive guard would suppress the only emission we get.
 
 ### Effect cleanup
 
-- [ ] Return a cleanup function that calls `map.off('style.load', handler)` so rapid theme toggles can't leak listeners (`off()` is a no-op when the listener has already fired or been removed).
+- [x] Return a cleanup function that calls `map.off('style.load', handler)` so rapid theme toggles can't leak listeners (`off()` is a no-op when the listener has already fired or been removed).
 
 ### No regression to initial-mount behavior
 
-- [ ] `prevThemeRef` early-return preserved. Initial layer install (the separate `frequencies`-seeded effect) is unchanged.
+- [x] `prevThemeRef` early-return preserved. Initial layer install (the separate `frequencies`-seeded effect) is unchanged.
 
 ### Verification (browser)
 
-- [ ] Dark → light: all 5 transit layers present; `map.getStyle().layers.length === 73`.
-- [ ] Light → dark: same.
-- [ ] Five rapid toggles: total layer count stays at 73 across iterations; no duplicates of any transit layer ID.
-- [ ] Post-swap hover still drives `routes-lines-selected` correctly (paint applies cleanly at opacity 0.85 on the next hover).
+- [x] Dark → light: all 5 transit layers present; `map.getStyle().layers.length === 73`.
+- [x] Light → dark: same.
+- [x] Five rapid toggles: total layer count stays at 73 across iterations; no duplicates of any transit layer ID.
+- [x] Post-swap hover still drives `routes-lines-selected` correctly (paint applies cleanly at opacity 0.85 on the next hover).
 
 ## Notes
 
