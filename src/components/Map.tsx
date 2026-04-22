@@ -671,8 +671,12 @@ export function Map({
   // Theme swap: regenerate the basemap style and re-add our route/stops/
   // selected layers after it loads. `setStyle({ diff: true })` preserves the
   // geojson sources (no re-fetch of routes/stops) but drops user-added layers,
-  // so we explicitly reinstall them on the `style.load` event. Skipped on
-  // initial mount — the map is already initialized with the current theme.
+  // so we explicitly reinstall them on `style.load`. Critical ordering:
+  // MapLibre dispatches `style.load` synchronously inside `setStyle` in
+  // many cases, so we attach the listener *before* calling setStyle — a
+  // post-setStyle `once()` would miss the event that already fired and the
+  // transit layers would stay gone until a hard refresh. Skipped on initial
+  // mount — the map is already initialized with the current theme.
   const prevThemeRef = useRef(theme)
   useEffect(() => {
     const map = mapRef.current
@@ -680,11 +684,16 @@ export function Map({
     if (prevThemeRef.current === theme) return
     prevThemeRef.current = theme
 
-    map.setStyle(buildMapStyle(getPmtilesUrl(), theme), { diff: true })
-    map.once('style.load', () => {
+    const reinstall = () => {
       if (frequencies.status !== 'ready') return
       addRouteLayers(map, frequencies.data, day, window, enabledModes, thresholds, theme)
-    })
+    }
+    map.once('style.load', reinstall)
+    map.setStyle(buildMapStyle(getPmtilesUrl(), theme), { diff: true })
+
+    return () => {
+      map.off('style.load', reinstall)
+    }
     // day / window / enabledModes / thresholds intentionally omitted —
     // repaint/filter effects below reconcile those independently after the
     // style swap. Only theme transitions should trigger this effect.
