@@ -2,65 +2,65 @@
 
 ## Status
 
-In Progress
+Complete
 
 ## Goals
 
 ### Display short names as riders see them
 
-- [ ] Add pure helper `displayShortName(short)` in `src/lib/route-search.ts` — strips leading zeros from all-numeric GTFS short names (`"099"` → `"99"`, `"004"` → `"4"`), returns non-numeric names unchanged (`"R4"`, `"N10"`).
-- [ ] Route all user-facing `route_short_name` renders through the helper: `RouteSearch` rows, `RouteDetailPanel` header, `RouteTooltip`.
-- [ ] Do not mutate `route_id` or the underlying GeoJSON — display transform only; matching still operates on raw GTFS short name.
-- [ ] Unit tests: `"099"` → `"99"`, `"004"` → `"4"`, `"R4"` → `"R4"`, `"N10"` → `"N10"`, `""` → `""`, `"0"` → `"0"`.
+- [x] Add pure helper `displayShortName(short)` in `src/lib/route-search.ts` — strips leading zeros from all-numeric GTFS short names (`"099"` → `"99"`, `"004"` → `"4"`), returns non-numeric names unchanged (`"R4"`, `"N10"`).
+- [x] Route all user-facing `route_short_name` renders through the helper: `RouteSearch` rows, `RouteDetailPanel` header, `RouteTooltip`.
+- [x] Do not mutate `route_id` or the underlying GeoJSON — display transform only; matching still operates on raw GTFS short name.
+- [x] Unit tests: `"099"` → `"99"`, `"004"` → `"4"`, `"R4"` → `"R4"`, `"N10"` → `"N10"`, `""` → `""`, `"0"` → `"0"`.
 
 ### Search — empty-state surfaces the whole network
 
-- [ ] Empty-query dropdown renders curated, grouped list (not the first 50 numeric routes):
+- [x] Empty-query dropdown renders curated, grouped list (not the first 50 numeric routes):
   - Rapid transit (route_type ≠ 3): Expo, Millennium, Canada Line, SeaBus, WCE — in that order.
   - RapidBus (`/^R\d+$/`): R1, R2, R3, R4, R5, R6.
   - Frequent buses (weekday-midday band is `frequent` or `very_frequent`), numerically ordered.
   - "Show all N routes" footer expands the remaining routes in numeric order.
-- [ ] Group headings use `text-xs font-medium text-neutral-900 dark:text-neutral-100` (feature-14 convention, not uppercase tracking).
+- [x] Group headings use `text-xs font-medium text-neutral-900 dark:text-neutral-100` (feature-14 convention, not uppercase tracking).
 
 ### Search — typed queries match smarter
 
-- [ ] Keep existing `matchRouteQuery` substring-prefix-on-normalized behavior.
-- [ ] Extend `normalize()` to strip leading zeros from all-digit tokens so `"99"` and `"099"` both match the 99 B-Line. Add tests.
-- [ ] Non-blank query renders a flat, ranked list (no group headings): (1) short-name exact match, (2) short-name prefix, (3) long-name substring.
-- [ ] Highlight matched substring in each row with `<mark>` using existing accent color.
-- [ ] Raise result cap from 50 to effectively unbounded (cmdk `CommandList` virtualizes). If first-paint regresses on 237-row empty state, cap at 200 and show "Keep typing to narrow" trailing row.
+- [x] Keep existing `matchRouteQuery` substring-prefix-on-normalized behavior.
+- [x] Extend `normalize()` to strip leading zeros from all-digit tokens so `"99"` and `"099"` both match the 99 B-Line. Add tests.
+- [x] Non-blank query renders a flat, ranked list (no group headings): (1) short-name exact match, (2) short-name prefix, (3) long-name substring.
+- [x] Highlight matched substring in each row with `<mark>` using existing accent color.
+- [x] Raise result cap from 50 to effectively unbounded (cmdk `CommandList` virtualizes). If first-paint regresses on 237-row empty state, cap at 200 and show "Keep typing to narrow" trailing row.
 
 ### Search — better input affordances
 
-- [ ] Placeholder: `"Search — 99, R4, Main St, UBC"`.
-- [ ] Retain `/` shortcut; add `⌘K` / `Ctrl+K` alternative.
-- [ ] Dialog open focuses input and pre-selects any existing query text (second `/` acts as re-search).
-- [ ] ESC closes (cmdk default) — verify after grouped rendering lands.
+- [x] Placeholder: `"Search — 99, R4, Main St, UBC"`.
+- [x] Retain `/` shortcut; add `⌘K` / `Ctrl+K` alternative.
+- [x] Dialog open focuses input and pre-selects any existing query text (second `/` acts as re-search).
+- [x] ESC closes (cmdk default) — verify after grouped rendering lands.
 
 ### Map — street labels at mid zoom
 
-- [ ] Confirm Protomaps' `namedTheme('dark'|'light')` emits road labels from z11+ in `src/lib/map-style.ts`. Bump `protomaps-themes-base` if the pinned version doesn't.
-- [ ] No custom label layers. If tweaks needed, override specific layer `minzoom` values post-`buildMapStyle` — don't fork the theme.
-- [ ] Parity in dark and light themes; labels must read in both without extra glyph fetches beyond the existing Protomaps glyph endpoint.
+- [x] Confirm Protomaps' `namedTheme('dark'|'light')` emits road labels from z11+ in `src/lib/map-style.ts`. Bump `protomaps-themes-base` if the pinned version doesn't.
+- [x] No custom label layers. If tweaks needed, override specific layer `minzoom` values post-`buildMapStyle` — don't fork the theme.
+- [x] Parity in dark and light themes; labels must read in both without extra glyph fetches beyond the existing Protomaps glyph endpoint.
 
 ### Map — stops start one zoom earlier
 
-- [ ] Drop `STOPS_LAYER` `minzoom` from 13 to 11 in `src/components/Map.tsx`.
-- [ ] Extend `stopCircleRadius` interpolation: z11: 0.75 → z13: 1.5 → z15: 2.5 → z17: 4.
-- [ ] Keep circle color, stroke, opacity unchanged. No clustering.
-- [ ] 60 fps pan check at z11 across Metro Vancouver with all ~8.8k stops source-loaded. If regressed, fade z11–z12 in with `circle-opacity` interpolation so MapLibre can short-circuit fully-transparent paints.
+- [x] Drop `STOPS_LAYER` `minzoom` from 13 to 11 in `src/components/Map.tsx`.
+- [x] Extend `stopCircleRadius` interpolation: z11: 0.75 → z13: 1.5 → z15: 2.5 → z17: 4.
+- [x] Keep circle color, stroke, opacity unchanged. No clustering.
+- [x] 60 fps pan check at z11 across Metro Vancouver with all ~8.8k stops source-loaded. If regressed, fade z11–z12 in with `circle-opacity` interpolation so MapLibre can short-circuit fully-transparent paints.
 
 ### Map — click a stop, see what's there
 
-- [ ] Stop-dot click opens MapLibre `Popup` anchored to geometry. Content:
+- [x] Stop-dot click opens MapLibre `Popup` anchored to geometry. Content:
   - Stop name (`properties.stop_name`).
   - Stop code (`properties.stop_code`) when present.
   - "Routes serving this stop" — route-badge chips for every route touching this `stop_id`. Badge click closes popup and opens `RouteDetailPanel` via existing `onRouteSelect`.
-- [ ] Build stop→route reverse index in the pipeline:
+- [x] Build stop→route reverse index in the pipeline:
   - `scripts/build-data.ts` emits `public/data/stop-routes.json` — `Record<stop_id, route_id[]>`, deduped, sorted numeric-then-alpha. ≤50 KB gz.
   - Map loads this JSON lazily on first stop-click, not at page load.
-- [ ] Hit priority preserved (feature 09): `queryRenderedFeatures` queries route layers first, falls back to `stops-circles`. Stops only become click target when cursor is directly on a stop circle and outside any route-line hitbox.
-- [ ] Mobile (`<640px`): let MapLibre's default `Popup` anchor logic keep the popup on-screen near viewport edges (don't override `anchor`).
+- [x] Hit priority preserved (feature 09): `queryRenderedFeatures` queries route layers first, falls back to `stops-circles`. Stops only become click target when cursor is directly on a stop circle and outside any route-line hitbox.
+- [x] Mobile (`<640px`): let MapLibre's default `Popup` anchor logic keep the popup on-screen near viewport edges (don't override `anchor`).
 
 ## Notes
 
